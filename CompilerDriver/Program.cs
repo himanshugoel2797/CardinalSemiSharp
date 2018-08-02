@@ -69,7 +69,7 @@ namespace HelloWorld
     }
 }";
 
-            string codePath = @"C:\Users\Himanshu Goel\source\repos\CardinalSemiCompiler\CardinalSemiCompiler";
+            string codePath = @"CardinalSemiCompiler";
             var code = Directory.GetFiles(codePath, "*.cs", SearchOption.AllDirectories);
 
             for(int i = 0; i < code.Length; i++)
