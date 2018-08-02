@@ -90,7 +90,10 @@ namespace CardinalSemiCompiler.AST
                         idx = AddContext(tkns, idx);
                         break;
                     case "class":
-                        idx = ParseClass(parent, tkns, idx);
+                        idx = ParseClass(parent, tkns, idx, false);
+                        break;
+                    case "struct":
+                        idx = ParseClass(parent, tkns, idx, true);
                         break;
                     case "enum":
                         idx = ParseEnum(parent, tkns, idx);
@@ -144,7 +147,7 @@ namespace CardinalSemiCompiler.AST
             } while (true);
         }
 
-        private static int ParseClass(SyntaxNode parent, Token[] tkns, int idx)
+        private static int ParseClass(SyntaxNode parent, Token[] tkns, int idx, bool valueType)
         {
             //Check for any context and consume it
             var curTkn = tkns[idx];
@@ -174,18 +177,30 @@ namespace CardinalSemiCompiler.AST
                     }
             }
 
-            var node = new ClassSyntaxNode(curTkn, isPub, isPart, isStat);
+            var node = new ClassSyntaxNode(curTkn, valueType, isPub, isPart, isStat);
             parent.ChildNodes.Add(node);
             idx = ParseCompoundIdentifier(node, tkns, idx + 1);
 
             if (tkns[idx].TokenType == TokenType.OpeningAngle)
             {
                 //TODO: Handle generics
+                while(tkns[idx].TokenType != TokenType.ClosingAngle)
+                {
+
+                    idx++;
+                }
             }
 
             if (tkns[idx].TokenType == TokenType.Colon)
             {
                 //TODO: Handle inheritance
+
+                //TODO: Handle generic constraints
+                while(tkns[idx].TokenType == TokenType.Keyword && tkns[idx].TokenValue == "where")
+                {
+
+                    idx++;
+                }
             }
 
             while (tkns[idx].TokenType != TokenType.OpeningBrace)

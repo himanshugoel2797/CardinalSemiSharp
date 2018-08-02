@@ -110,6 +110,7 @@ namespace CardinalSemiCompiler.Tokenizer
             "value",
 
             "while",
+            "where",
 
             "yield",
         };

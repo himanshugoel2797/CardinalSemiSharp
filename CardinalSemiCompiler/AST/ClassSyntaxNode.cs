@@ -13,11 +13,14 @@ namespace CardinalSemiCompiler.AST
         public bool IsPartial { get; private set; }
         public bool IsStatic { get; private set; }
 
-        public ClassSyntaxNode(Token t, bool pub, bool part, bool stat) : base(SyntaxNodeType.ClassSyntaxNode, t)
+        public bool ValueType { get; private set; }
+
+        public ClassSyntaxNode(Token t, bool valueType, bool pub, bool part, bool stat) : base(SyntaxNodeType.ClassSyntaxNode, t)
         {
             IsPublic = pub;
             IsPartial = part;
             IsStatic = stat;
+            ValueType = valueType;
         }
 
         public override string ToString()
