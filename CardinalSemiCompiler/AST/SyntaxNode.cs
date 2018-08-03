@@ -20,6 +20,9 @@ namespace CardinalSemiCompiler.AST
         EnumEntrySyntaxNode,
         Block,
         Attribute,
+        GenericParameterNode,
+        GenericDeclarationSyntaxNode,
+        InheritanceSyntaxNode,
     }
 
     public class SyntaxNode

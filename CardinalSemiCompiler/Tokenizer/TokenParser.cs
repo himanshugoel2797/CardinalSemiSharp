@@ -45,6 +45,7 @@ namespace CardinalSemiCompiler.Tokenizer
             "float",
             "for",
             "foreach",
+            "function",
 
             "goto",
             "get",
@@ -56,6 +57,7 @@ namespace CardinalSemiCompiler.Tokenizer
             "interface",
             "internal",
             "is",
+            "indexer",
 
             "lock",
             "long",
@@ -75,6 +77,7 @@ namespace CardinalSemiCompiler.Tokenizer
             "protected",
             "public",
             "partial",
+            "property",
 
             "readonly",
             "ref",

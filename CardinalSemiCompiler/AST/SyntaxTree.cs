@@ -85,7 +85,9 @@ namespace CardinalSemiCompiler.AST
                         idx = ParseNamespace(parent, tkns, idx);
                         break;
                     case "public":
+                    case "internal":
                     case "partial":
+                    case "abstract":
                     case "static":
                         idx = AddContext(tkns, idx);
                         break;
@@ -112,7 +114,60 @@ namespace CardinalSemiCompiler.AST
             return idx;
         }
 
+        private static int ProcessTypeDefNode(SyntaxNode parent, Token[] tkns, int idx)
+        {
+            var curTkn = tkns[idx];
+            if (curTkn.TokenType == TokenType.Keyword)
+                switch (curTkn.TokenValue)
+                {
+                    case "public":
+                    case "private":
+                    case "protected":
+                    case "internal":
+                    case "virtual":
+                    case "abstract":
+                    case "static":
+                    case "extern":
+                    case "volatile":
+                    case "implicit":
+                    case "explicit":
+                    case "const":
+                        idx = AddContext(tkns, idx);
+                        break;
+                    case "delegate":
+                        idx = ParseDelegate(parent, tkns, idx);
+                        break;
+                    case "event":
+                        idx = ParseEvent(parent, tkns, idx);
+                        break;
+                    case "property":
+                        idx = ParseProperty(parent, tkns, idx);
+                        break;
+                    case "indexer":
+                        idx = ParseIndexer(parent, tkns, idx);
+                        break;
+                    case "var":
+                        idx = ParseGlobalVar(parent, tkns, idx);
+                        break;
+                    case "operator":
+                        idx = ParseFunction(parent, tkns, idx, true);
+                        break;
+                    case "function":
+                        idx = ParseFunction(parent, tkns, idx, false);
+                        break;
+                    default:
+                        return idx + 1; //TODO: change this to throw an unknown syntax error
+                }
+            else if (curTkn.TokenType == TokenType.OpeningBracket)
+            {
+                //TODO: handle attribute parsing
+                return idx + 1;
+            }
+            else
+                return idx + 1; //TODO: change this to throw an unknown syntax error
 
+            return idx;
+        }
         private static int ParseCompoundIdentifier(SyntaxNode parent, Token[] tkns, int idx)
         {
             //Build the identifier
@@ -147,6 +202,55 @@ namespace CardinalSemiCompiler.AST
             } while (true);
         }
 
+        private static int ParseGenericDeclaration(SyntaxNode parent, Token[] tkns, int idx)
+        {
+            idx = ParseCompoundIdentifier(parent, tkns, idx);
+
+            if (tkns[idx].TokenType == TokenType.OpeningAngle)
+            {
+                //Handle generics
+                bool expectedIdent = true;
+                idx++;
+                while(tkns[idx].TokenType != TokenType.ClosingAngle)
+                {
+                    var gTkn = tkns[idx];
+                    if(gTkn.TokenType == TokenType.Identifier && expectedIdent){
+                        idx = ParseCompoundIdentifier(parent, tkns, idx);
+                    }else if(gTkn.TokenType == TokenType.Comma && !expectedIdent){
+                        idx++;
+                    }
+                    expectedIdent = !expectedIdent;
+                }
+                idx++;
+            }
+
+            return idx;
+        }
+
+        private static int ParseDelegate(SyntaxNode parent, Token[] tkns, int idx){
+            throw new NotImplementedException();
+        }
+
+        private static int ParseEvent(SyntaxNode parent, Token[] tkns, int idx){
+            throw new NotImplementedException();
+        }
+
+        private static int ParseFunction(SyntaxNode parent, Token[] tkns, int idx, bool oper){
+            throw new NotImplementedException();
+        }
+
+        private static int ParseProperty(SyntaxNode parent, Token[] tkns, int idx){
+            throw new NotImplementedException();
+        }
+        
+        private static int ParseIndexer(SyntaxNode parent, Token[] tkns, int idx){
+            throw new NotImplementedException();
+        }
+        
+        private static int ParseGlobalVar(SyntaxNode parent, Token[] tkns, int idx){
+            throw new NotImplementedException();
+        }
+
         private static int ParseClass(SyntaxNode parent, Token[] tkns, int idx, bool valueType)
         {
             //Check for any context and consume it
@@ -155,6 +259,8 @@ namespace CardinalSemiCompiler.AST
             bool isPub = false;
             bool isPart = false;
             bool isStat = false;
+            bool isIntern = false;
+            bool isAbstract = false;
 
             while (HasContext())
             {
@@ -171,40 +277,71 @@ namespace CardinalSemiCompiler.AST
                         case "static":
                             isStat = true;
                             break;
+                        case "internal":
+                            isIntern = true;
+                            break;
+                        case "abstract":
+                            isAbstract = true;
+                            break;
                         default:
                             HandleSingleUnexpectedContext(tkn);
                             break;
                     }
             }
 
-            var node = new ClassSyntaxNode(curTkn, valueType, isPub, isPart, isStat);
+            var node = new ClassSyntaxNode(curTkn, valueType, isPub, isIntern, isPart, isStat, isAbstract);
             parent.ChildNodes.Add(node);
             idx = ParseCompoundIdentifier(node, tkns, idx + 1);
 
             if (tkns[idx].TokenType == TokenType.OpeningAngle)
             {
-                //TODO: Handle generics
+                //Handle generics
+                bool expectedIdent = true;
+                idx++;
+
                 while(tkns[idx].TokenType != TokenType.ClosingAngle)
                 {
+                    var gTkn = tkns[idx];
+                    if(gTkn.TokenType == TokenType.Identifier && expectedIdent){
+                        node.GenericParameters.Add(new SyntaxNode(SyntaxNodeType.GenericParameterNode, gTkn));
+                    }else if(gTkn.TokenType == TokenType.Comma && !expectedIdent){
 
+                    }
+
+                    expectedIdent = !expectedIdent;
                     idx++;
                 }
             }
 
             if (tkns[idx].TokenType == TokenType.Colon)
             {
-                //TODO: Handle inheritance
-
-                //TODO: Handle generic constraints
-                while(tkns[idx].TokenType == TokenType.Keyword && tkns[idx].TokenValue == "where")
-                {
-
+                //Handle inheritance
+                while(true){
                     idx++;
+
+                    var iNode = new SyntaxNode(SyntaxNodeType.InheritanceSyntaxNode, tkns[idx]);
+                    idx = ParseGenericDeclaration(iNode, tkns, idx);
+                    node.InheritanceSet.Add(iNode);
+
+                    if(tkns[idx].TokenType == TokenType.Comma)
+                        continue;
+                    else if(tkns[idx].TokenType == TokenType.Keyword && tkns[idx].TokenValue == "where")
+                        break;
+                    else if(tkns[idx].TokenType == TokenType.OpeningBrace)
+                        break;
+                    else
+                        throw new SyntaxException("Unexpected token.", tkns[idx]);
                 }
             }
 
-            while (tkns[idx].TokenType != TokenType.OpeningBrace)
-                idx++;
+            if (tkns[idx].TokenType == TokenType.Keyword && tkns[idx].TokenValue == "where"){
+                //Handle generic constraints
+                while(tkns[idx].TokenType == TokenType.Keyword && tkns[idx].TokenValue == "where")
+                {
+                    throw new NotImplementedException("Generic constraint support not implemented yet.");
+                    idx++;
+                }
+            }
 
             if (tkns[idx].TokenType != TokenType.OpeningBrace)
                 throw new SyntaxException("Expected '{'", tkns[idx]);
@@ -222,7 +359,7 @@ namespace CardinalSemiCompiler.AST
                 if (idx >= tkns.Length)
                     throw new SyntaxException("Expected '}'", tkns[idx]);
 
-                idx = ProcessNode(blk_node, tkns, idx);
+                idx = ProcessTypeDefNode(blk_node, tkns, idx);
             }
             return idx + 1;
         }

@@ -74,10 +74,7 @@ namespace HelloWorld
 
             for(int i = 0; i < code.Length; i++)
             {
-                if (code[i].Contains("\\obj\\"))
-                    continue;
-
-                if (!code[i].Contains("Token.cs"))
+                if (code[i].Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar))
                     continue;
 
                 Console.WriteLine($"\nCompiling: {Path.GetFileName(code[i])}\n");
