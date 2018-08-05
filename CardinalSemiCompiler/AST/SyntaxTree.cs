@@ -132,6 +132,9 @@ namespace CardinalSemiCompiler.AST
                     case "implicit":
                     case "explicit":
                     case "const":
+                    case "override":
+                    case "unsafe":
+                    case "atomic":
                         idx = AddContext(tkns, idx);
                         break;
                     case "delegate":
@@ -152,7 +155,7 @@ namespace CardinalSemiCompiler.AST
                     case "operator":
                         idx = ParseFunction(parent, tkns, idx, true);
                         break;
-                    case "function":
+                    case "func":
                         idx = ParseFunction(parent, tkns, idx, false);
                         break;
                     default:
@@ -202,6 +205,90 @@ namespace CardinalSemiCompiler.AST
             } while (true);
         }
 
+        private static int ParseTypeReference(SyntaxNode parent, Token[] tkns, int idx, bool acceptPrefix){
+            
+            //Build the identifier
+            var curTkn = tkns[idx++];
+
+            if (curTkn.TokenType != TokenType.Identifier && curTkn.TokenType != TokenType.Keyword)
+                throw new SyntaxException("Expected identifier.", curTkn);
+
+            Token prefix = null;
+            string identifier = "";
+            string[] builtin_types = new string[] {
+                "bool",
+                "byte",
+                "char",
+                "decimal",
+                "double",
+                "float",
+                "int",
+                "long",
+                "object",
+                "sbyte",
+                "short",
+                "string",
+                "uint",
+                "ulong",
+                "ushort",
+            };
+
+            string[] prefixes = new string[] {
+                "in",
+                "out",
+                "ref",
+                "params"
+            };
+
+            int startPos = curTkn.StartPosition;
+            int line = curTkn.Line;
+            int col = curTkn.Column;
+
+            bool dotExpected = false;
+            bool typeNameCompleted = false;
+            do
+            {
+                if (curTkn.TokenType == TokenType.Identifier && !dotExpected && !typeNameCompleted)
+                    identifier += curTkn.TokenValue;
+                else if(curTkn.TokenType == TokenType.Keyword && !dotExpected && !typeNameCompleted){
+                    if(builtin_types.Contains(curTkn.TokenValue)){
+                        identifier += curTkn.TokenValue;
+                        typeNameCompleted = true;
+                    }
+                    else if(prefixes.Contains(curTkn.TokenValue) && acceptPrefix){
+                        prefix = curTkn;
+                        dotExpected = !dotExpected;
+                    }else
+                        throw new SyntaxException("Unexpected keyword.", curTkn);
+                }
+                else if (curTkn.TokenType == TokenType.Dot && dotExpected && !typeNameCompleted)
+                    identifier += ".";
+                else if (dotExpected | typeNameCompleted)
+                {
+                    var nNode = new SyntaxNode(SyntaxNodeType.CompoundIdentifierNode, new Token(TokenType.Identifier, identifier, startPos, line, col));
+                    parent.ChildNodes.Add(nNode);
+                    if(prefix != null)
+                        nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.PrefixSyntaxNode, prefix));
+
+                    if(tkns[idx - 1].TokenType == TokenType.OpeningBracket)
+                        if(tkns[idx].TokenType == TokenType.ClosingBracket){
+                            nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.ArraySpecifier, tkns[idx - 1]));
+                            return idx + 1;
+                        }
+                        else
+                            throw new SyntaxException("Expected closing bracket.", tkns[idx]);
+
+                    return idx - 1;
+                }
+                else
+                    throw new SyntaxException("Unexpected end of identifier.", curTkn);
+
+                dotExpected = !dotExpected;
+
+                curTkn = tkns[idx++];
+            } while (true);
+        }
+
         private static int ParseGenericDeclaration(SyntaxNode parent, Token[] tkns, int idx)
         {
             idx = ParseCompoundIdentifier(parent, tkns, idx);
@@ -227,16 +314,180 @@ namespace CardinalSemiCompiler.AST
             return idx;
         }
 
+        //public delegate int DelegateName(Type, Type, Type);
         private static int ParseDelegate(SyntaxNode parent, Token[] tkns, int idx){
-            throw new NotImplementedException();
+            //Check for any context and consume it
+            var curTkn = tkns[idx];
+
+            bool isPub = false;
+            bool isPriv = false;
+            bool isProt = false;
+            bool isIntern = false;
+
+            while (HasContext())
+            {
+                var tkn = ConsumeContext();
+                if (tkn.TokenType == TokenType.Keyword)
+                    switch (tkn.TokenValue)
+                    {
+                        case "public":
+                            isPub = true;
+                            break;
+                        case "private":
+                            isPriv = true;
+                            break;
+                        case "protected":
+                            isProt = true;
+                            break;
+                        case "internal":
+                            isIntern = true;
+                            break;
+                        default:
+                            HandleSingleUnexpectedContext(tkn);
+                            break;
+                    }
+            }
+
+            var node = new DelegateSyntaxNode(isPub, isPriv, isProt, isIntern, curTkn);
+            parent.ChildNodes.Add(node);
+            idx = ParseTypeReference(node, tkns, idx + 1, false);
+            
+            if(tkns[idx].TokenType == TokenType.Identifier){
+                node.Identifier = tkns[idx];
+            }else
+                throw new SyntaxException("Expected Identifier.", tkns[idx]);
+
+            //Parse the arguments
+            idx++;
+            if(tkns[idx].TokenType == TokenType.OpeningParen){
+                idx++;
+                while(true){
+                    if(tkns[idx].TokenType == TokenType.ClosingParen){
+                        idx++;
+                        break;
+                    }
+
+                    var nNode = new SyntaxNode(SyntaxNodeType.ParameterNode, tkns[idx]);
+                    node.Parameters.Add(nNode);
+                    idx = ParseTypeReference(node, tkns, idx, true);
+
+                    if(tkns[idx].TokenType == TokenType.Comma)
+                        idx++;
+                }
+            }else
+                throw new SyntaxException("Expected parameter list.", tkns[idx]);
+
+            if(tkns[idx].TokenType == TokenType.Semicolon){
+                return idx + 1;
+            }else
+                throw new SyntaxException("Expected semicolon.", tkns[idx]);
         }
 
         private static int ParseEvent(SyntaxNode parent, Token[] tkns, int idx){
-            throw new NotImplementedException();
+            throw new NotImplementedException("Events not implemented yet.");
         }
 
+        private static int ParseFuncEntry(SyntaxNode parent, Token[] tkns, int idx) {
+            throw new NotImplementedException("Function code parsing not implemented yet.");
+        }
+
+        //public static func int FunctionName(TypeName a, TypeName b, TypeName c) {}
         private static int ParseFunction(SyntaxNode parent, Token[] tkns, int idx, bool oper){
-            throw new NotImplementedException();
+            //Check for any context and consume it
+            var curTkn = tkns[idx];
+
+            bool isPub = false;
+            bool isPriv = false;
+            bool isProt = false;
+            bool isIntern = false;
+            bool isStat = false;
+            bool isVirt = false;
+            bool isOver = false;
+
+            while (HasContext())
+            {
+                var tkn = ConsumeContext();
+                if (tkn.TokenType == TokenType.Keyword)
+                    switch (tkn.TokenValue)
+                    {
+                        case "public":
+                            isPub = true;
+                            break;
+                        case "private":
+                            isPriv = true;
+                            break;
+                        case "protected":
+                            isProt = true;
+                            break;
+                        case "internal":
+                            isIntern = true;
+                            break;
+                        case "static":
+                            isStat = true;
+                            break;
+                        case "virtual":
+                            isVirt = true;
+                            break;
+                        case "override":
+                            isOver = true;
+                            break;
+                        default:
+                            HandleSingleUnexpectedContext(tkn);
+                            break;
+                    }
+            }
+
+            var node = new FunctionSyntaxNode(isPub, isPriv, isProt, isIntern, isStat, isVirt, isOver, curTkn);
+            parent.ChildNodes.Add(node);
+            idx = ParseTypeReference(node, tkns, idx + 1, false);
+            
+            if(tkns[idx].TokenType == TokenType.Identifier){
+                node.Identifier = tkns[idx];
+            }else
+                throw new SyntaxException("Expected Identifier.", tkns[idx]);
+
+            //Parse the arguments
+            idx++;
+            if(tkns[idx].TokenType == TokenType.OpeningParen){
+                idx++;
+                while(true){
+                    if(tkns[idx].TokenType == TokenType.ClosingParen){
+                        idx++;
+                        break;
+                    }
+
+                    var nNode = new SyntaxNode(SyntaxNodeType.ParameterNode, tkns[idx]);
+                    node.Parameters.Add(nNode);
+                    idx = ParseTypeReference(node, tkns, idx, true);
+                    if(tkns[idx].TokenType == TokenType.Identifier){
+                        node.ParameterNames.Add(tkns[idx].TokenValue);
+                        idx++;
+                    }
+                    else
+                        throw new SyntaxException("Invalid parameter name.", tkns[idx]);
+
+                    if(tkns[idx].TokenType == TokenType.Comma)
+                        idx++;
+                }
+            }else
+                throw new SyntaxException("Expected parameter list.", tkns[idx]);
+
+            if(tkns[idx].TokenType == TokenType.OpeningBrace){
+                var blk_node = new SyntaxNode(SyntaxNodeType.Block, tkns[idx]);
+                node.ChildNodes.Add(blk_node);
+
+                idx++;
+                while (tkns[idx].TokenType != TokenType.ClosingBrace)
+                {
+                    if (idx >= tkns.Length)
+                        throw new SyntaxException("Expected '}'", tkns[idx]);
+
+                    idx = ParseFuncEntry(blk_node, tkns, idx);
+                }
+
+                return idx + 1;
+            }else
+                throw new SyntaxException("Expected semicolon.", tkns[idx]);
         }
 
         private static int ParseProperty(SyntaxNode parent, Token[] tkns, int idx){
@@ -247,8 +498,75 @@ namespace CardinalSemiCompiler.AST
             throw new NotImplementedException();
         }
         
+        //public static var int VarName = ConstVal;
+        //public static var int VarName;
         private static int ParseGlobalVar(SyntaxNode parent, Token[] tkns, int idx){
-            throw new NotImplementedException();
+            //Check for any context and consume it
+            var curTkn = tkns[idx];
+
+            bool isPub = false;
+            bool isPriv = false;
+            bool isProt = false;
+            bool isStat = false;
+            bool isIntern = false;
+            bool isConst = false;
+            bool isVolatile = false;
+            bool isAtomic = false;
+
+            while (HasContext())
+            {
+                var tkn = ConsumeContext();
+                if (tkn.TokenType == TokenType.Keyword)
+                    switch (tkn.TokenValue)
+                    {
+                        case "public":
+                            isPub = true;
+                            break;
+                        case "private":
+                            isPriv = true;
+                            break;
+                        case "protected":
+                            isProt = true;
+                            break;
+                        case "internal":
+                            isIntern = true;
+                            break;
+                        case "static":
+                            isStat = true;
+                            break;
+                        case "const":
+                            isConst = true;
+                            break;
+                        case "volatile":
+                            isVolatile = true;
+                            break;
+                        case "atomic":
+                            isAtomic = true;
+                            break;
+                        default:
+                            HandleSingleUnexpectedContext(tkn);
+                            break;
+                    }
+            }
+
+            var node = new GlobalDeclSyntaxNode(isPub, isPriv, isProt, isIntern, isStat, isConst, isVolatile, isAtomic, curTkn);
+            parent.ChildNodes.Add(node);
+            idx = ParseTypeReference(node, tkns, idx + 1, false);
+            
+            if(tkns[idx].TokenType == TokenType.Identifier){
+                node.Identifier = tkns[idx];
+            }else
+                throw new SyntaxException("Expected Identifier.", tkns[idx]);
+
+            idx++;
+
+            if(tkns[idx].TokenType == TokenType.Semicolon){
+                return idx + 1;
+            }else if(tkns[idx].TokenType == TokenType.Operator && tkns[idx].TokenValue == "="){
+                //TODO: Parse the constant expression
+                throw new NotImplementedException("Implement constant expression parsing.");
+            }else
+                throw new SyntaxException("Expected expression or semicolon.", tkns[idx]);
         }
 
         private static int ParseClass(SyntaxNode parent, Token[] tkns, int idx, bool valueType)
@@ -377,6 +695,7 @@ namespace CardinalSemiCompiler.AST
             if(tkns[idx].TokenType == TokenType.Operator && tkns[idx].TokenValue == "=")
             {
                 //TODO: Resolve constants
+                throw new NotImplementedException("Implement constant expression parsing.");
             }
 
             EnumEntrySyntaxNode ent = new EnumEntrySyntaxNode(curTkn, nm, val);
@@ -417,6 +736,7 @@ namespace CardinalSemiCompiler.AST
             if (tkns[idx].TokenType == TokenType.Colon)
             {
                 //TODO: Handle inheritance
+                throw new NotImplementedException("Implement enum inheritance.");
             }
 
             while (tkns[idx].TokenType != TokenType.OpeningBrace)

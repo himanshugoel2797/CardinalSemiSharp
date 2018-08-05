@@ -1,0 +1,13 @@
+using System;
+
+namespace Test0 {
+    class TestClass0 {
+        public static var int A;
+        public var int B;
+
+        public func Int32 Test0(in float a, in byte b, out short c){
+
+            return 0;
+        }
+    }
+}

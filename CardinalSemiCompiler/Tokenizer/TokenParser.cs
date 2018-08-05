@@ -13,6 +13,7 @@ namespace CardinalSemiCompiler.Tokenizer
         {
             "abstract",
             "as",
+            "atomic",
 
             "base",
             "bool",
@@ -45,7 +46,7 @@ namespace CardinalSemiCompiler.Tokenizer
             "float",
             "for",
             "foreach",
-            "function",
+            "func",
 
             "goto",
             "get",

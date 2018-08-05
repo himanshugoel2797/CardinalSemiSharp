@@ -69,8 +69,8 @@ namespace HelloWorld
     }
 }";
 
-            string codePath = @"CardinalSemiCompiler";
-            var code = Directory.GetFiles(codePath, "*.cs", SearchOption.AllDirectories);
+            string codePath = @"TestCode";
+            var code = Directory.GetFiles(codePath, "*.cas", SearchOption.AllDirectories);
 
             for(int i = 0; i < code.Length; i++)
             {

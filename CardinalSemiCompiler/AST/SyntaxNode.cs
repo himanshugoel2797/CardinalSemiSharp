@@ -23,6 +23,12 @@ namespace CardinalSemiCompiler.AST
         GenericParameterNode,
         GenericDeclarationSyntaxNode,
         InheritanceSyntaxNode,
+        GlobalDeclSyntaxNode,
+        ArraySpecifier,
+        DelegateSyntaxNode,
+        PrefixSyntaxNode,
+        ParameterNode,
+        FunctionSyntaxNode,
     }
 
     public class SyntaxNode
