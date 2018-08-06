@@ -488,6 +488,9 @@ namespace CardinalSemiCompiler.AST
                                     nNode.ChildNodes.Add(ifNode);
                                     nNode = ifNode;
                                     idx++;
+                                }else{
+                                    parent.ChildNodes.Add(nNode);
+                                    return ParseCodeBlock(nNode, tkns, idx + 1);
                                 }
                             }
                             if(tkns[idx + 1].TokenType == TokenType.OpeningParen)

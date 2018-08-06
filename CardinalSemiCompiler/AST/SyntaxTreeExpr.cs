@@ -254,7 +254,7 @@ namespace CardinalSemiCompiler.AST
             //CONDITIONAL
             string[] primary_ops = new string[] {"true", "false", "null", "typeof", "sizeof", "nameof"};
 
-            if(tkns[idx].TokenType == TokenType.StringLiteral | tkns[idx].TokenType == TokenType.CharLiteral | tkns[idx].TokenType == TokenType.IntegerLiteral | tkns[idx].TokenType == TokenType.HexLiteral | tkns[idx].TokenType == TokenType.BinaryLiteral){
+            if(tkns[idx].TokenType == TokenType.StringLiteral | tkns[idx].TokenType == TokenType.CharLiteral | tkns[idx].TokenType == TokenType.IntegerLiteral | tkns[idx].TokenType == TokenType.HexLiteral | tkns[idx].TokenType == TokenType.BinaryLiteral| tkns[idx].TokenType == TokenType.FloatLiteral){
                 //STRING | INTEGER | CHAR | HEX | BINARY
                 nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.ConstantNode, tkns[idx]));
                 return idx + 1;

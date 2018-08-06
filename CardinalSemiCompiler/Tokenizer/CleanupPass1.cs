@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CardinalSemiCompiler.AST;
 
 namespace CardinalSemiCompiler.Tokenizer
 {
@@ -53,15 +54,15 @@ namespace CardinalSemiCompiler.Tokenizer
                     var nTkn = inTkns.Dequeue();
                     tkns.Enqueue(new Token(TokenType.AssignmentOperator, ">>=", curTkn.StartPosition, curTkn.Line, curTkn.Column));
                 }
-                else if(curTkn.TokenType == TokenType.IntegerLiteral && inTkns.Peek().TokenType == TokenType.Operator && inTkns.Peek().TokenValue == ".")
+                else if(curTkn.TokenType == TokenType.IntegerLiteral && inTkns.Peek().TokenType == TokenType.Dot)
                 {
                     var nTkn = inTkns.Dequeue();
-                    tkns.Enqueue(new Token(TokenType.FloatLiteral, curTkn.TokenValue + ".", curTkn.StartPosition, curTkn.Line, curTkn.Column));
-                }
-                else if(curTkn.TokenType == TokenType.FloatLiteral && inTkns.Peek().TokenType == TokenType.IntegerLiteral)
-                {
-                    var nTkn = inTkns.Dequeue();
-                    tkns.Enqueue(new Token(TokenType.FloatLiteral, curTkn.TokenValue + inTkns.Peek().TokenValue, curTkn.StartPosition, curTkn.Line, curTkn.Column));
+                    if(inTkns.Peek().TokenType != TokenType.IntegerLiteral)
+                        throw new SyntaxException("Improper decimal/floating point number.", inTkns.Peek());
+                    var nTkn2 = inTkns.Dequeue();
+                    tkns.Enqueue(new Token(TokenType.FloatLiteral, curTkn.TokenValue + "." + nTkn2.TokenValue, curTkn.StartPosition, curTkn.Line, curTkn.Column));
+                }else if(curTkn.TokenType == TokenType.HexLiteral){
+                    tkns.Enqueue(new Token(TokenType.IntegerLiteral, Convert.ToUInt64(curTkn.TokenValue, 16).ToString(), curTkn.StartPosition, curTkn.Line, curTkn.Column));
                 }
                 else
                 {

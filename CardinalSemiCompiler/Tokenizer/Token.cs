@@ -59,7 +59,7 @@ namespace CardinalSemiCompiler.Tokenizer
 
     public class Token
     {
-        public TokenType TokenType { get; private set; }
+        public TokenType TokenType { get; set; }
         public string TokenValue { get; set; }
 
         public int StartPosition { get; private set; }

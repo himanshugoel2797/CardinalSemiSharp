@@ -6,8 +6,10 @@ namespace Test0 {
         public var int B;
 
         public func string Test0(in float a, in byte b, out short c){
-
-            return "Test" + nameof(a) + (10 - 5 * 2 / 4 + 20);
+            if(a == 1)
+                return (10 - 5 * 2 / 4 + 20) | 0xFFFF;
+            else
+                return b;
         }
     }
 }

@@ -99,6 +99,7 @@ namespace CardinalSemiCompiler.AST {
                 TokenType[] tkn_int_types = new TokenType[] { TokenType.IntegerLiteral, TokenType.HexLiteral, TokenType.BinaryLiteral };
                 TokenType[] tkn_flt_types = new TokenType[] { TokenType.FloatLiteral };
                 TokenType[] tkn_str_types = new TokenType[] { TokenType.StringLiteral };
+                string[] arithmetic_ops = new string[] {"+", "-", "*", "/", "%"};
 
                 if(n_op.NodeType != SyntaxNodeType.UnaryNode){
                     var n_c0 = n_op.ChildNodes[0];
@@ -108,14 +109,24 @@ namespace CardinalSemiCompiler.AST {
                     for(int i = 0; i < n_op.Operator.Count; i++){
                         var n_c1 = n_op.ChildNodes[i + 1];
 
-                        if(n_c1.NodeType == SyntaxNodeType.ConstantNode && n_c0.Token.TokenType == n_c1.Token.TokenType)
+                        if(arithmetic_ops.Contains(n_op.Operator[i].TokenValue)){
+                            if(n_c0.Token.TokenType == TokenType.FloatLiteral && n_c1.Token.TokenType == TokenType.IntegerLiteral){
+                                n_c1.Token.TokenType = TokenType.FloatLiteral;
+                            }
+                        
+                            if(n_c0.Token.TokenType == TokenType.IntegerLiteral && n_c1.Token.TokenType == TokenType.FloatLiteral){
+                                n_c0.Token.TokenType = TokenType.FloatLiteral;
+                            }
+                        }
+
+                        if(n_c1.NodeType == SyntaxNodeType.ConstantNode)
                             switch(n_op.Operator[i].TokenValue){
                                 case "+":
                                     {
                                         var n_val = "";
                                         if(tkn_int_types.Contains(n_c0.Token.TokenType) && tkn_int_types.Contains(n_c1.Token.TokenType)){
                                             n_val = HandleNumberMath(n_op.Operator[i].TokenValue, n_c0.Token.TokenValue, n_c1.Token.TokenValue, n_c0.Token.TokenType, n_c1.Token.TokenType);
-                                        }else if(tkn_flt_types.Contains(n_c0.Token.TokenType) && tkn_int_types.Contains(n_c1.Token.TokenType)){
+                                        }else if(tkn_flt_types.Contains(n_c0.Token.TokenType) && tkn_flt_types.Contains(n_c1.Token.TokenType)){
                                             n_val = HandleFloatMath(n_op.Operator[i].TokenValue, n_c0.Token.TokenValue, n_c1.Token.TokenValue, n_c0.Token.TokenType, n_c1.Token.TokenType);
                                         }else if(tkn_str_types.Contains(n_c1.Token.TokenType)){
                                             n_val = n_c0.Token.TokenValue + n_c1.Token.TokenValue;
@@ -129,27 +140,14 @@ namespace CardinalSemiCompiler.AST {
                                     }
                                     break;
                                 case "-":
-                                    {
-                                        var n_val = "";
-                                        if(tkn_int_types.Contains(n_c0.Token.TokenType) && tkn_int_types.Contains(n_c1.Token.TokenType)){
-                                            n_val = HandleNumberMath(n_op.Operator[i].TokenValue, n_c0.Token.TokenValue, n_c1.Token.TokenValue, n_c0.Token.TokenType, n_c1.Token.TokenType);
-                                        }else if(tkn_flt_types.Contains(n_c0.Token.TokenType) && tkn_int_types.Contains(n_c1.Token.TokenType)){
-                                            n_val = HandleFloatMath(n_op.Operator[i].TokenValue, n_c0.Token.TokenValue, n_c1.Token.TokenValue, n_c0.Token.TokenType, n_c1.Token.TokenType);
-                                        }else break;
-
-                                        var n_r = new SyntaxNode(SyntaxNodeType.ConstantNode, new Token(n_c0.Token, n_val));
-                                        n_c0 = n_r;
-                                        n_op.ChildNodes[0] = n_c0;
-                                        n_op.ChildNodes[i + 1] = null;
-                                        n_op.Operator[i] = null;
-                                    }
-                                    break;
                                 case "*":
+                                case "/":
+                                case "%":
                                     {
                                         var n_val = "";
                                         if(tkn_int_types.Contains(n_c0.Token.TokenType) && tkn_int_types.Contains(n_c1.Token.TokenType)){
                                             n_val = HandleNumberMath(n_op.Operator[i].TokenValue, n_c0.Token.TokenValue, n_c1.Token.TokenValue, n_c0.Token.TokenType, n_c1.Token.TokenType);
-                                        }else if(tkn_flt_types.Contains(n_c0.Token.TokenType) && tkn_int_types.Contains(n_c1.Token.TokenType)){
+                                        }else if(tkn_flt_types.Contains(n_c0.Token.TokenType) && tkn_flt_types.Contains(n_c1.Token.TokenType)){
                                             n_val = HandleFloatMath(n_op.Operator[i].TokenValue, n_c0.Token.TokenValue, n_c1.Token.TokenValue, n_c0.Token.TokenType, n_c1.Token.TokenType);
                                         }else break;
 
@@ -160,14 +158,18 @@ namespace CardinalSemiCompiler.AST {
                                         n_op.Operator[i] = null;
                                     }
                                     break;
-                                case "/":
+                                case ">>":
+                                case "<<":
+                                case "&":
+                                case "^":
+                                case "|":
                                     {
                                         var n_val = "";
                                         if(tkn_int_types.Contains(n_c0.Token.TokenType) && tkn_int_types.Contains(n_c1.Token.TokenType)){
                                             n_val = HandleNumberMath(n_op.Operator[i].TokenValue, n_c0.Token.TokenValue, n_c1.Token.TokenValue, n_c0.Token.TokenType, n_c1.Token.TokenType);
-                                        }else if(tkn_flt_types.Contains(n_c0.Token.TokenType) && tkn_int_types.Contains(n_c1.Token.TokenType)){
-                                            n_val = HandleFloatMath(n_op.Operator[i].TokenValue, n_c0.Token.TokenValue, n_c1.Token.TokenValue, n_c0.Token.TokenType, n_c1.Token.TokenType);
-                                        }else break;
+                                        }else if(tkn_flt_types.Contains(n_c0.Token.TokenType) | tkn_flt_types.Contains(n_c1.Token.TokenType))
+                                            throw new SyntaxException("Operator '" + n_op.Operator[i].TokenValue +"' is not defined for floating point/decimal.", n.Token);
+                                        else break;
 
                                         var n_r = new SyntaxNode(SyntaxNodeType.ConstantNode, new Token(n_c0.Token, n_val));
                                         n_c0 = n_r;
@@ -189,6 +191,13 @@ namespace CardinalSemiCompiler.AST {
                     if(n_op.Operator.Count == 0)
                         return n.ChildNodes[0];
                 }
+            }
+
+            if(n.ChildNodes.Count == 1 && n.ChildNodes[0].NodeType == SyntaxNodeType.ConstantNode && n.NodeType == SyntaxNodeType.SpecialStatement && (n.Token.TokenType == TokenType.OpeningParen | n.Token.TokenType == TokenType.IntegerLiteral | n.Token.TokenType == TokenType.FloatLiteral | n.Token.TokenType == TokenType.StringLiteral | n.Token.TokenType == TokenType.CharLiteral) ){
+                n.NodeType = SyntaxNodeType.ConstantNode;
+                n.Token.TokenValue = n.ChildNodes[0].Token.TokenValue;
+                n.Token.TokenType = n.ChildNodes[0].Token.TokenType;
+                n.ChildNodes.Clear();
             }
 
             return n;
