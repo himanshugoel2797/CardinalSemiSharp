@@ -101,7 +101,7 @@ namespace CardinalSemiCompiler.AST {
                 TokenType[] tkn_str_types = new TokenType[] { TokenType.StringLiteral };
                 string[] arithmetic_ops = new string[] {"+", "-", "*", "/", "%"};
 
-                if(n_op.NodeType != SyntaxNodeType.UnaryNode){
+                if(n_op.NodeType != SyntaxNodeType.UnaryNode && n_op.ChildNodes.Count > 0){
                     var n_c0 = n_op.ChildNodes[0];
                     if(n_c0.NodeType != SyntaxNodeType.ConstantNode)
                         return n;

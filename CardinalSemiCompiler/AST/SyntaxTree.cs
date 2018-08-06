@@ -88,7 +88,7 @@ namespace CardinalSemiCompiler.AST
 
                 if(n.ChildNodes[i] is OperatorSyntaxNode){
                     var node = n.ChildNodes[i] as OperatorSyntaxNode;
-                    if(node.ChildNodes.Count == 1){
+                    if(node.ChildNodes.Count == 1 && node.Operator.Count == 0){
                         n.ChildNodes[i] = n.ChildNodes[i].ChildNodes[0];
                     }
                 }
@@ -439,7 +439,10 @@ namespace CardinalSemiCompiler.AST
         }
 
         private static int ParseSubExpression(SyntaxNode parent, Token[] tkns, int idx){
-            return ParseAssignAndLambdaExpr(parent, tkns, idx);
+            var terms = new TokenType[]{ TokenType.Semicolon, TokenType.ClosingParen, TokenType.Comma, TokenType.ClosingBracket };
+            while(!terms.Contains(tkns[idx].TokenType))
+                idx = ParseAssignAndLambdaExpr(parent, tkns, idx);
+            return idx;
         }
 
         private static int ParseExpression(SyntaxNode parent, Token[] tkns, int idx){
@@ -447,9 +450,15 @@ namespace CardinalSemiCompiler.AST
             var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
             parent.ChildNodes.Add(nNode);
 
+
             idx = ParseSubExpression(nNode, tkns, idx);
-            if(tkns[idx].TokenType == TokenType.Comma)
-                return ParseExpression(parent, tkns, idx + 1);
+            if(tkns[idx].TokenType == TokenType.Comma){
+                while(tkns[idx].TokenType == TokenType.Comma){
+                    var nNode2 = new SyntaxNode(SyntaxNodeType.SubexpressionNode, tkns[idx]);
+                    nNode.ChildNodes.Add(nNode2);
+                    idx = ParseSubExpression(nNode2, tkns, idx + 1);
+                }
+            }
             return idx;
         }
 
@@ -537,15 +546,21 @@ namespace CardinalSemiCompiler.AST
                             if(tkns[idx + 1].TokenType != TokenType.OpeningParen)
                                 throw new SyntaxException("Expected opening parenthesis.", tkns[idx + 1]);
 
+                            idx++;
                             for(int i = 0; i < 3; i++){
-                                if(tkns[idx + 2].TokenType != TokenType.Semicolon)
-                                    idx = ParseExpression(nNode, tkns, idx + 2);
+                                if(tkns[idx + 1].TokenType != TokenType.Semicolon){
+                                    idx = ParseExpression(nNode, tkns, idx + 1);
+                                }
                                 else{
                                     nNode.ChildNodes.Add(null);
                                     idx++;
                                 }
                             }
-                            return ParseCodeBlock(nNode, tkns, idx);
+
+                            if(tkns[idx].TokenType != TokenType.ClosingParen)
+                                throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
+
+                            return ParseCodeBlock(nNode, tkns, idx + 1);
                         }
                         break;
                     //foreach(TYPE IDENTIFIER in LVALUE) CODE_BLOCK
@@ -686,6 +701,7 @@ namespace CardinalSemiCompiler.AST
             if(tkns[idx].TokenType != TokenType.OpeningBrace)
                 return ParseStatement(nNode, tkns, idx);
             else{
+                idx++;
                 while(tkns[idx].TokenType != TokenType.ClosingBrace)
                     idx = ParseStatement(nNode, tkns, idx);
 

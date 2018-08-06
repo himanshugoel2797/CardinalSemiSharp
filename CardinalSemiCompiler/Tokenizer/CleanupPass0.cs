@@ -86,6 +86,18 @@ namespace CardinalSemiCompiler.Tokenizer
                     var nTkn = inTkns.Dequeue();
                     tkns.Enqueue(new Token(TokenType.Operator, "$@", curTkn.StartPosition, curTkn.Line, curTkn.Column));
                 }
+                //Handle '?.' operator
+                else if (inTkns.Count > 1 && inTkns.Peek().TokenType == TokenType.Dot && curTkn.TokenType == TokenType.Question)
+                {
+                    inTkns.Dequeue();
+                    tkns.Enqueue(new Token(TokenType.Operator, "?.", curTkn.StartPosition, curTkn.Line, curTkn.Column));
+                }
+                //Handle '->' operator
+                else if (inTkns.Count > 1 && inTkns.Peek().TokenType == TokenType.ClosingAngle && curTkn.TokenType == TokenType.Dash)
+                {
+                    inTkns.Dequeue();
+                    tkns.Enqueue(new Token(TokenType.Operator, "->", curTkn.StartPosition, curTkn.Line, curTkn.Column));
+                }
                 //Handle '//' header for line comments
                 else if (inTkns.Count > 1 && inTkns.Peek().TokenType == TokenType.ForwardSlash && curTkn.TokenType == TokenType.ForwardSlash)
                 {

@@ -157,11 +157,10 @@ namespace CardinalSemiCompiler.AST
             parent.ChildNodes.Add(nNode);
             idx = ParseShiftExpr(nNode, tkns, idx);
             
-            string[] ops = new string[] {"<", ">"};
             string[] ops_1 = new string[] {"<=", ">="};
             string[] ops_2 = new string[] {"is", "as"};
 
-            if(tkns[idx].TokenType == TokenType.Operator && ops.Contains(tkns[idx].TokenValue)){
+            if(tkns[idx].TokenType == TokenType.OpeningAngle | tkns[idx].TokenType == TokenType.ClosingAngle){
                 nNode.Operator.Add(tkns[idx]);
                 return ParseShiftExpr(nNode, tkns, idx + 1);
             }
@@ -303,20 +302,28 @@ namespace CardinalSemiCompiler.AST
                 }
                 return idx + 1;
             }else if(tkns[idx].TokenType == TokenType.Identifier){
-                nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableNode, tkns[idx]));
-                return idx + 1;
-            }else{
                 string[] ops = new string[] { "++", "--" };
-                string[] ops_1 = new string[] { ".", "?.", "->" };
-                
-                idx = ParseAssignAndLambdaExpr(nNode, tkns, idx);
+                string[] ops_1 = new string[] { "?.", "->" };
 
-                nNode.Operator.Add(tkns[idx]);
-                if(tkns[idx].TokenType == TokenType.Operator && ops.Contains(tkns[idx].TokenValue))
+                if(tkns[idx + 1].TokenType == TokenType.Operator && ops.Contains(tkns[idx + 1].TokenValue)){
+                    nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableNode, tkns[idx]));
+                    nNode.Operator.Add(tkns[idx + 1]);
+                    return idx + 2;
+                } else if(tkns[idx + 1].TokenType == TokenType.Dot | (tkns[idx + 1].TokenType == TokenType.Operator && ops_1.Contains(tkns[idx + 1].TokenValue))){
+                    nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.CompoundIdentifierNode, tkns[idx]));
+                    nNode.Operator.Add(tkns[idx + 1]);
+                    return ParseAssignAndLambdaExpr(nNode, tkns, idx + 2);
+                } else if(tkns[idx + 1].TokenType == TokenType.Identifier){
+                    nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.CompoundIdentifierNode, tkns[idx]));
+                    nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableDeclNode, tkns[idx + 1]));
                     return idx + 1;
-                else if(tkns[idx].TokenType == TokenType.Operator && ops_1.Contains(tkns[idx].TokenValue))
-                    return ParseAssignAndLambdaExpr(parent, tkns, idx + 1);
-
+                } else {
+                    nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableNode, tkns[idx]));
+                }
+                return idx + 1;
+            }else if(tkns[idx].TokenType == TokenType.Semicolon){
+                throw new Exception("Unknown.");
+            }else{
                 return ParseAssignAndLambdaExpr(nNode, tkns, idx);
             }
             //TODO: Handle array and function calls
