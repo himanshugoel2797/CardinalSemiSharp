@@ -387,8 +387,167 @@ namespace CardinalSemiCompiler.AST
             throw new NotImplementedException("Events not implemented yet.");
         }
 
-        private static int ParseFuncEntry(SyntaxNode parent, Token[] tkns, int idx) {
+        //CONST_EXPR
+        private static int ParseConstExpression(SyntaxNode parent, Token[] tkns, int idx){
+            throw new NotImplementedException("Constant expressions not implemented.");
+        }
+
+        private static int ParseConditional(SyntaxNode parent, Token[] tkns, int idx){
+            //CONDITIONAL
+            throw new NotImplementedException("Conditionals not implemented.");
+        }
+
+        private static int ParseLValue(SyntaxNode parent, Token[] tkns, int idx) {
+            throw new NotImplementedException("LValues not implemented.");
+        }
+
+        private static int ParseAssignmentExpression(SyntaxNode parent, Token[] tkns, int idx) {
+            throw new NotImplementedException("LValues not implemented.");
+        }
+
+        private static int ParseExpression(SyntaxNode parent, Token[] tkns, int idx){
+            //EXPRESSION, ASSIGNMENT_EXPRESSION
+            //LVALUE ASSIGNMENT ASSIGNMENT_EXPRESSION;
+            //ASSIGNMENT_EXPRESSION
+            //CONDITIONAL
+            throw new Exception("Expressions not implemented.");
+        }
+
+        private static int ParseStatement(SyntaxNode parent, Token[] tkns, int idx){
+            //CODE_BLOCK;
+            if(tkns[idx].TokenType == TokenType.OpeningBrace){
+                var nNode = new SyntaxNode(SyntaxNodeType.Block, tkns[idx]);
+                parent.ChildNodes.Add(nNode);
+                return ParseCodeBlock(nNode, tkns, idx);
+            } else if(tkns[idx].TokenType == TokenType.Keyword) {
+                switch(tkns[idx].TokenValue){
+                    //if (CONDITIONAL) CODE_BLOCK
+                    //while (CONDITIONAL) CODE_BLOCK
+                    case "while":
+                    case "if":
+                        {
+                            var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            if(tkns[idx + 1].TokenType == TokenType.OpeningParen)
+                            {
+                                idx = ParseExpression(nNode, tkns, idx + 2);
+                                parent.ChildNodes.Add(nNode);
+
+                                if(tkns[idx].TokenType != TokenType.ClosingParen)
+                                    throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
+                                return ParseCodeBlock(nNode, tkns, idx + 1);
+                            }else
+                                throw new SyntaxException("Expected conditional.", tkns[idx + 1]);
+                        }
+                        break;
+                    //do CODE_BLOCK while(EXPRESSION);
+                    case "do":
+                        {
+                            var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            parent.ChildNodes.Add(nNode);
+                            idx = ParseCodeBlock(nNode, tkns, idx + 1);
+                            if(tkns[idx].TokenType != TokenType.Keyword && tkns[idx].TokenValue == "while")
+                                throw new SyntaxException("Expected 'while' statement.", tkns[idx]);
+
+                            if(tkns[idx + 1].TokenType != TokenType.OpeningParen)
+                                throw new SyntaxException("Expected opening parenthesis.", tkns[idx + 1]);
+
+                            idx = ParseExpression(nNode, tkns, idx);
+
+                            if (tkns[idx].TokenType != TokenType.ClosingParen)
+                                throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
+                                
+                            if (tkns[idx + 1].TokenType != TokenType.Semicolon)
+                                throw new SyntaxException("Expected semicolon.", tkns[idx + 1]);
+                            
+                            return idx + 2;
+                        }
+                        break;
+                    //for({EXPRESSION};{EXPRESSION};{EXPRESSION}) CODE_BLOCK
+                    case "for":
+                        {
+
+                        }
+                        break;
+                    //foreach(TYPE IDENTIFIER in LVALUE) CODE_BLOCK
+                    case "foreach":
+                        {
+
+                        }
+                        break;
+                    //switch(EXPRESSION) CODE_BLOCK
+                    case "switch":
+                        {
+
+                        }
+                        break;
+                    //case CONST_EXPR : CODE_BLOCK
+                    case "case":
+                        {
+
+                        }
+                        break;
+                    //default : CODE_BLOCK
+                    case "default":
+                        {
+                            if(tkns[idx + 1].TokenType != TokenType.Colon)
+                                throw new SyntaxException("Expected colon.", tkns[idx + 1]);
+
+                            var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            parent.ChildNodes.Add(nNode);
+                            return ParseCodeBlock(nNode, tkns, idx + 2);
+                        }
+                        break;
+                    //continue;
+                    //break;
+                    case "continue":
+                    case "break":
+                        {
+                            var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            parent.ChildNodes.Add(nNode);
+                            if(tkns[idx + 1].TokenType != TokenType.Semicolon)
+                                throw new SyntaxException("Expected semicolon.", tkns[idx + 1]);
+                            return idx + 2;
+                        }
+                        break;
+                    //return EXPRESSION;
+                    //throw EXPRESSION;
+                    case "return":
+                    case "throw":
+                        {
+                            var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            parent.ChildNodes.Add(nNode);
+                            idx = ParseExpression(nNode, tkns, idx + 1);
+                            if(tkns[idx].TokenType != TokenType.Semicolon)
+                                throw new SyntaxException("Expected semicolon.", tkns[idx + 1]);
+                            return idx + 1;
+                        }
+                        break;
+                    //try CODE_BLOCK catch(TYPE IDENTIFIER) CODE_BLOCK finally CODE_BLOCK
+                    case "try":
+                        {
+
+                        }
+                        break;
+                }
+            }else if(tkns[idx].TokenType == TokenType.Semicolon)
+                return idx + 1;
+            else
+                return ParseExpression(parent, tkns, idx);
+
             throw new NotImplementedException("Function code parsing not implemented yet.");
+        }
+        private static int ParseCodeBlock(SyntaxNode parent, Token[] tkns, int idx) {
+
+            var nNode = new SyntaxNode(SyntaxNodeType.Block, tkns[idx]);
+            parent.ChildNodes.Add(nNode);
+            if(tkns[idx].TokenType != TokenType.OpeningBrace)
+                return ParseStatement(nNode, tkns, idx);
+            else{
+                while(tkns[idx].TokenType != TokenType.ClosingBrace)
+                    idx = ParseStatement(nNode, tkns, idx);
+
+                return idx + 1;
+            }
         }
 
         //public static func int FunctionName(TypeName a, TypeName b, TypeName c) {}
@@ -482,7 +641,7 @@ namespace CardinalSemiCompiler.AST
                     if (idx >= tkns.Length)
                         throw new SyntaxException("Expected '}'", tkns[idx]);
 
-                    idx = ParseFuncEntry(blk_node, tkns, idx);
+                    idx = ParseCodeBlock(blk_node, tkns, idx);
                 }
 
                 return idx + 1;
@@ -563,8 +722,8 @@ namespace CardinalSemiCompiler.AST
             if(tkns[idx].TokenType == TokenType.Semicolon){
                 return idx + 1;
             }else if(tkns[idx].TokenType == TokenType.Operator && tkns[idx].TokenValue == "="){
-                //TODO: Parse the constant expression
-                throw new NotImplementedException("Implement constant expression parsing.");
+                //Parse the constant expression
+                return ParseConstExpression(node, tkns, idx + 1);
             }else
                 throw new SyntaxException("Expected expression or semicolon.", tkns[idx]);
         }
@@ -691,15 +850,15 @@ namespace CardinalSemiCompiler.AST
 
             string nm = curTkn.TokenValue;
             ulong val = (ulong)parent.ChildNodes.Count;
+            EnumEntrySyntaxNode ent = new EnumEntrySyntaxNode(curTkn, nm, val);
+            parent.ChildNodes.Add(ent);
 
             if(tkns[idx].TokenType == TokenType.Operator && tkns[idx].TokenValue == "=")
             {
-                //TODO: Resolve constants
-                throw new NotImplementedException("Implement constant expression parsing.");
+                //Parse the constant expression
+                return ParseConstExpression(ent, tkns, idx + 1);
             }
 
-            EnumEntrySyntaxNode ent = new EnumEntrySyntaxNode(curTkn, nm, val);
-            parent.ChildNodes.Add(ent);
 
             if (tkns[idx].TokenType == TokenType.Comma)
                 idx++;

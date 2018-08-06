@@ -24,21 +24,26 @@ namespace CardinalSemiCompiler.Tokenizer
                 if (inTkns.Count > 1 && inTkns.Peek().TokenType == TokenType.Equal)
                     switch (curTkn.TokenType)
                     {
-                        case TokenType.Exclamation:
                         case TokenType.Percentage:
                         case TokenType.Tick:
                         case TokenType.Ampersand:
                         case TokenType.Asterisk:
                         case TokenType.Dash:
                         case TokenType.Plus:
-                        case TokenType.Equal:
                         case TokenType.Pipe:
                         case TokenType.ForwardSlash:
-                        case TokenType.OpeningAngle:
-                        case TokenType.ClosingAngle:
                             {
                                 inTkns.Dequeue();
-                                tkns.Enqueue(new Token(TokenType.Operator, curTkn.TokenValue + "=", curTkn.StartPosition, curTkn.Line, curTkn.Column));
+                                tkns.Enqueue(new Token(TokenType.AssignmentOperator, curTkn.TokenValue + "=", curTkn.StartPosition, curTkn.Line, curTkn.Column));
+                            }
+                            break;
+                        case TokenType.Exclamation:
+                        case TokenType.OpeningAngle:
+                        case TokenType.ClosingAngle:
+                        case TokenType.Equal:
+                            {
+                                inTkns.Dequeue();
+                                tkns.Enqueue(new Token(TokenType.ConditionalOperator, curTkn.TokenValue + "=", curTkn.StartPosition, curTkn.Line, curTkn.Column));
                             }
                             break;
                         default:

@@ -29,6 +29,7 @@ namespace CardinalSemiCompiler.AST
         PrefixSyntaxNode,
         ParameterNode,
         FunctionSyntaxNode,
+        SpecialStatement,
     }
 
     public class SyntaxNode

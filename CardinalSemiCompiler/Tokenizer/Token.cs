@@ -13,7 +13,8 @@ namespace CardinalSemiCompiler.Tokenizer
         Identifier,
         Preprocessor,
         Operator,
-
+        AssignmentOperator,
+        ConditionalOperator,
         StringLiteral,
         MultiLineStringLiteral,
         InterpolatedStringLiteral,
