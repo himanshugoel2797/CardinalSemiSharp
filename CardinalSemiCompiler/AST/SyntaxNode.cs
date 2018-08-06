@@ -51,7 +51,7 @@ namespace CardinalSemiCompiler.AST
 
     public class SyntaxNode
     {
-        public SyntaxNodeType NodeType { get; private set; }
+        public SyntaxNodeType NodeType { get; set; }
         public Token Token { get; private set; }
 
         public List<SyntaxNode> ChildNodes { get; private set; }

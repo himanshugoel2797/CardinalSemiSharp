@@ -5,9 +5,9 @@ namespace Test0 {
         public static var int A;
         public var int B;
 
-        public func Int32 Test0(in float a, in byte b, out short c){
+        public func string Test0(in float a, in byte b, out short c){
 
-            return 0+5*10-4-2-14;
+            return "Test" + nameof(a) + (10 - 5 * 2 / 4 + 20);
         }
     }
 }

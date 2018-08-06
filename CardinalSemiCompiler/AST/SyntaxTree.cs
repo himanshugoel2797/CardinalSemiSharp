@@ -66,7 +66,36 @@ namespace CardinalSemiCompiler.AST
                 pos = ProcessNode(rNode, tkns, pos);
             } while (pos < tkns.Length);
 
+            //TODO: cleanup the tree, removing useless nodes.
+            CleanupTree(rNode);
+
             return rNode;
+        }
+
+        private static void CleanupTree(SyntaxNode n){
+            for(int i = 0; i < n.ChildNodes.Count; i++){
+                var node_t = n.ChildNodes[i];
+                CleanupTree(node_t);
+                n.ChildNodes[i] = node_t;
+
+                if(n.ChildNodes[i] is OperatorSyntaxNode){
+                    var node = n.ChildNodes[i] as OperatorSyntaxNode;
+                    if(node.ChildNodes.Count == 1){
+                        n.ChildNodes[i] = n.ChildNodes[i].ChildNodes[0];
+                    }
+                }
+
+                if(n.ChildNodes.Count == 1 && n.ChildNodes[0].NodeType == n.NodeType && n.ChildNodes[0].Token == n.Token){
+                    var ents = n.ChildNodes[0].ChildNodes;
+                    n.ChildNodes.Clear();
+                    n.ChildNodes.AddRange(ents);
+                }
+                /*if(n.ChildNodes.Count == 1 && n.ChildNodes[0].ChildNodes.Count == 1){
+                    var node2 = n.ChildNodes[0].ChildNodes[0];
+                    n.ChildNodes.Clear();
+                    n.ChildNodes.Add(node2);
+                }*/
+            }
         }
 
         //Parse only top level nodes

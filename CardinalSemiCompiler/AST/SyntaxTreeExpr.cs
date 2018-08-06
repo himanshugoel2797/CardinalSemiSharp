@@ -15,10 +15,11 @@ namespace CardinalSemiCompiler.AST
             parent.ChildNodes.Add(nNode);
             idx = ParseConditionalExpr(nNode, tkns, idx);
 
-            nNode.Operator.Add(tkns[idx]);
             if(tkns[idx].TokenType == TokenType.Operator && tkns[idx].TokenValue == "=>"){
+                nNode.Operator.Add(tkns[idx]);
                 return ParseCodeBlock(nNode, tkns, idx + 1);
             }else if(tkns[idx].TokenType == TokenType.AssignmentOperator){
+                nNode.Operator.Add(tkns[idx]);
                 return ParseConditionalExpr(nNode, tkns, idx + 1);
             }else
                 return idx;
@@ -29,8 +30,8 @@ namespace CardinalSemiCompiler.AST
             parent.ChildNodes.Add(nNode);
             idx = ParseNullCoalesceExpr(nNode, tkns, idx);
 
-            nNode.Operator.Add(tkns[idx]);
             if(tkns[idx].TokenType == TokenType.Operator &&  tkns[idx].TokenValue == "?"){
+                nNode.Operator.Add(tkns[idx]);
                 idx = ParseNullCoalesceExpr(nNode, tkns, idx + 1);
                 if(tkns[idx].TokenType == TokenType.Operator && tkns[idx].TokenValue == ":"){
                     return ParseNullCoalesceExpr(nNode, tkns, idx + 1);
@@ -143,9 +144,10 @@ namespace CardinalSemiCompiler.AST
             
             string[] ops = new string[] {"==", "!="};
 
-            nNode.Operator.Add(tkns[idx]);
-            if(tkns[idx].TokenType == TokenType.ConditionalOperator && ops.Contains(tkns[idx].TokenValue))
+            if(tkns[idx].TokenType == TokenType.ConditionalOperator && ops.Contains(tkns[idx].TokenValue)){
+                nNode.Operator.Add(tkns[idx]);
                 return ParseRelationTypeTestingExpr(nNode, tkns, idx + 1);
+            }
             else
                 return idx;
         }
@@ -159,11 +161,14 @@ namespace CardinalSemiCompiler.AST
             string[] ops_1 = new string[] {"<=", ">="};
             string[] ops_2 = new string[] {"is", "as"};
 
-            nNode.Operator.Add(tkns[idx]);
-            if(tkns[idx].TokenType == TokenType.Operator && ops.Contains(tkns[idx].TokenValue))
+            if(tkns[idx].TokenType == TokenType.Operator && ops.Contains(tkns[idx].TokenValue)){
+                nNode.Operator.Add(tkns[idx]);
                 return ParseShiftExpr(nNode, tkns, idx + 1);
-            else if(tkns[idx].TokenType == TokenType.ConditionalOperator && ops_1.Contains(tkns[idx].TokenValue))
+            }
+            else if(tkns[idx].TokenType == TokenType.ConditionalOperator && ops_1.Contains(tkns[idx].TokenValue)){
+                nNode.Operator.Add(tkns[idx]);
                 return ParseShiftExpr(nNode, tkns, idx + 1);
+            }
             else if(tkns[idx].TokenType == TokenType.Keyword && ops_2.Contains(tkns[idx].TokenValue))
                 throw new SyntaxException("is/as operators not implemented yet.", tkns[idx]);
             else
@@ -232,9 +237,10 @@ namespace CardinalSemiCompiler.AST
 
             //TODO: Parse type casting
 
-            nNode.Operator.Add(tkns[idx]);
-            if(tkns[idx].TokenType == TokenType.Operator && ops.Contains(tkns[idx].TokenValue))
+            if(tkns[idx].TokenType == TokenType.Operator && ops.Contains(tkns[idx].TokenValue)){
+                nNode.Operator.Add(tkns[idx]);
                 return ParseUnaryExpr(nNode, tkns, idx + 1);
+            }
             else
                 return ParsePrimaryExpr(nNode, tkns, idx);
         }
@@ -256,7 +262,7 @@ namespace CardinalSemiCompiler.AST
                 //(EXPRESSION)
                 var nNode2 = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
                 nNode.ChildNodes.Add(nNode2);
-                idx = ParseExpression(nNode2, tkns, idx);
+                idx = ParseExpression(nNode2, tkns, idx + 1);
                 if(tkns[idx].TokenType != TokenType.ClosingParen)
                     throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
                 return idx + 1;    
@@ -268,26 +274,36 @@ namespace CardinalSemiCompiler.AST
                     case "null":
                         nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.ConstantNode, tkns[idx]));
                         break;
+                    case "checked":
+                    case "unchecked":
+                    case "typeof":
+                    case "default":
+                    case "sizeof":
+                    case "nameof":
+                        {
+                            var nNode2 = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            nNode.ChildNodes.Add(nNode2);
+                            
+                            if(tkns[idx + 1].TokenType != TokenType.OpeningParen)
+                                throw new SyntaxException("Expected opening parenthesis.", tkns[idx + 1]);
+
+                            idx = ParseExpression(nNode2, tkns, idx + 2);
+                            
+                            if(tkns[idx].TokenType != TokenType.ClosingParen)
+                                throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
+                            return idx + 1;
+                        }
                     case "new":
                     //TODO: Implement the following operators
                         break;
-                    case "typeof":
-                        break;
-                    case "checked":
-                        break;
-                    case "unchecked":
-                        break;
-                    case "default":
-                        break;
                     case "delegate":
-                        break;
-                    case "sizeof":
-                        break;
-                    case "nameof":
                         break;
                     default:
                         throw new SyntaxException("Unexpected keyword.", tkns[idx]);
                 }
+                return idx + 1;
+            }else if(tkns[idx].TokenType == TokenType.Identifier){
+                nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableNode, tkns[idx]));
                 return idx + 1;
             }else{
                 string[] ops = new string[] { "++", "--" };
