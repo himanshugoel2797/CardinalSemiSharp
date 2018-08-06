@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace CardinalSemiCompiler.AST
 {
-    public class SyntaxTree
+    public partial class SyntaxTree
     {
         #region Context management
         private static Queue<Token> ContextTokens;
@@ -397,20 +397,23 @@ namespace CardinalSemiCompiler.AST
             throw new NotImplementedException("Conditionals not implemented.");
         }
 
-        private static int ParseLValue(SyntaxNode parent, Token[] tkns, int idx) {
-            throw new NotImplementedException("LValues not implemented.");
-        }
-
         private static int ParseAssignmentExpression(SyntaxNode parent, Token[] tkns, int idx) {
             throw new NotImplementedException("LValues not implemented.");
         }
 
+        private static int ParseSubExpression(SyntaxNode parent, Token[] tkns, int idx){
+            return ParseAssignAndLambdaExpr(parent, tkns, idx);
+        }
+
         private static int ParseExpression(SyntaxNode parent, Token[] tkns, int idx){
-            //EXPRESSION, ASSIGNMENT_EXPRESSION
-            //LVALUE ASSIGNMENT ASSIGNMENT_EXPRESSION;
-            //ASSIGNMENT_EXPRESSION
-            //CONDITIONAL
-            throw new Exception("Expressions not implemented.");
+            //SUB_EXPRESSION(, EXPRESSION)*
+            var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+            parent.ChildNodes.Add(nNode);
+
+            idx = ParseSubExpression(nNode, tkns, idx);
+            if(tkns[idx].TokenType == TokenType.Comma)
+                return ParseExpression(parent, tkns, idx + 1);
+            return idx;
         }
 
         private static int ParseStatement(SyntaxNode parent, Token[] tkns, int idx){
@@ -421,12 +424,35 @@ namespace CardinalSemiCompiler.AST
                 return ParseCodeBlock(nNode, tkns, idx);
             } else if(tkns[idx].TokenType == TokenType.Keyword) {
                 switch(tkns[idx].TokenValue){
-                    //if (CONDITIONAL) CODE_BLOCK
                     //while (CONDITIONAL) CODE_BLOCK
                     case "while":
+                        {
+                            var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            if(tkns[idx + 1].TokenType == TokenType.OpeningParen)
+                            {
+                                idx = ParseExpression(nNode, tkns, idx + 2);
+                                parent.ChildNodes.Add(nNode);
+
+                                if(tkns[idx].TokenType != TokenType.ClosingParen)
+                                    throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
+                                return ParseCodeBlock(nNode, tkns, idx + 1);
+                            }else
+                                throw new SyntaxException("Expected conditional.", tkns[idx + 1]);
+                        }
+                        break;
+                    //{else} if (CONDITIONAL) CODE_BLOCK
+                    case "else":
                     case "if":
                         {
                             var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            if(tkns[idx].TokenValue == "else"){
+                                if(tkns[idx + 1].TokenValue == "if"){
+                                    var ifNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx + 1]);
+                                    nNode.ChildNodes.Add(ifNode);
+                                    nNode = ifNode;
+                                    idx++;
+                                }
+                            }
                             if(tkns[idx + 1].TokenType == TokenType.OpeningParen)
                             {
                                 idx = ParseExpression(nNode, tkns, idx + 2);
@@ -465,25 +491,72 @@ namespace CardinalSemiCompiler.AST
                     //for({EXPRESSION};{EXPRESSION};{EXPRESSION}) CODE_BLOCK
                     case "for":
                         {
+                            var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            parent.ChildNodes.Add(nNode);
 
+                            if(tkns[idx + 1].TokenType != TokenType.OpeningParen)
+                                throw new SyntaxException("Expected opening parenthesis.", tkns[idx + 1]);
+
+                            for(int i = 0; i < 3; i++){
+                                if(tkns[idx + 2].TokenType != TokenType.Semicolon)
+                                    idx = ParseExpression(nNode, tkns, idx + 2);
+                                else{
+                                    nNode.ChildNodes.Add(null);
+                                    idx++;
+                                }
+                            }
+                            return ParseCodeBlock(nNode, tkns, idx);
                         }
                         break;
                     //foreach(TYPE IDENTIFIER in LVALUE) CODE_BLOCK
                     case "foreach":
                         {
+                            var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            parent.ChildNodes.Add(nNode);
 
+                            if(tkns[idx + 1].TokenType != TokenType.OpeningParen)
+                                throw new SyntaxException("Expected opening parenthesis.", tkns[idx + 1]);
+
+                            idx = ParseTypeReference(nNode, tkns, idx + 2, false);
+                            if(tkns[idx].TokenType != TokenType.Identifier)
+                                throw new SyntaxException("Expected identifier.", tkns[idx]);
+                            nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableNode, tkns[idx]));
+                            
+                            if(tkns[idx + 1].TokenType != TokenType.Keyword | tkns[idx + 1].TokenValue != "in")
+                                throw new SyntaxException("Expected 'in' keyword.", tkns[idx + 1]);
+
+                            idx = ParseExpression(nNode, tkns, idx + 2);
+                            if(tkns[idx].TokenType != TokenType.ClosingParen)
+                                throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
+                            return ParseCodeBlock(nNode, tkns, idx + 1);
                         }
                         break;
                     //switch(EXPRESSION) CODE_BLOCK
                     case "switch":
                         {
+                            var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            parent.ChildNodes.Add(nNode);
 
+                            if(tkns[idx + 1].TokenType != TokenType.OpeningParen)
+                                throw new SyntaxException("Expected opening parenthesis.", tkns[idx + 1]);
+
+                            idx = ParseExpression(nNode, tkns, idx + 2);
+                            
+                            if(tkns[idx].TokenType != TokenType.ClosingParen)
+                                throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
+                            return ParseCodeBlock(nNode, tkns, idx + 1);
                         }
                         break;
                     //case CONST_EXPR : CODE_BLOCK
                     case "case":
                         {
+                            var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx + 1]);
+                            parent.ChildNodes.Add(nNode);
+                            idx = ParseConstExpression(nNode, tkns, idx + 1);
+                            if(tkns[idx].TokenType != TokenType.Colon)
+                                throw new SyntaxException("Expected colon.", tkns[idx]);
 
+                            return ParseCodeBlock(nNode, tkns, idx + 1);
                         }
                         break;
                     //default : CODE_BLOCK
@@ -525,7 +598,37 @@ namespace CardinalSemiCompiler.AST
                     //try CODE_BLOCK catch(TYPE IDENTIFIER) CODE_BLOCK finally CODE_BLOCK
                     case "try":
                         {
+                            var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            idx = ParseCodeBlock(nNode, tkns, idx + 1);
+                            int catch_cnt = 0;
+                            while(true){
 
+                                var catchNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                                nNode.ChildNodes.Add(catchNode);
+                                if(tkns[idx].TokenType != TokenType.Keyword | tkns[idx].TokenValue != "catch")
+                                    if(catch_cnt == 0)throw new SyntaxException("Expected catch statement.", tkns[idx]);
+                                    else break;
+                            
+                                if(tkns[idx + 1].TokenType != TokenType.OpeningParen)
+                                    throw new SyntaxException("Expected opening parenthesis.", tkns[idx + 1]);
+
+                                idx = ParseTypeReference(catchNode, tkns, idx + 2, false);
+                                
+                                if(tkns[idx].TokenType == TokenType.Identifier)
+                                    catchNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableNode, tkns[idx]));
+
+                                if(tkns[idx + 1].TokenType != TokenType.ClosingParen)
+                                    throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
+
+                                idx = ParseCodeBlock(catchNode, tkns, idx);
+                                catch_cnt++;
+                            }
+                            if(tkns[idx].TokenType == TokenType.Keyword && tkns[idx].TokenValue == "finally"){
+                                var finallyNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                                nNode.ChildNodes.Add(finallyNode);
+                                idx = ParseCodeBlock(finallyNode, tkns, idx);
+                            }
+                            return idx;
                         }
                         break;
                 }

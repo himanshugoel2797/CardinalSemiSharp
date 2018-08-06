@@ -74,6 +74,12 @@ namespace CardinalSemiCompiler.Tokenizer
                     inTkns.Dequeue();
                     tkns.Enqueue(new Token(TokenType.Operator, "||", curTkn.StartPosition, curTkn.Line, curTkn.Column));
                 }
+                //Handle '||' operator
+                else if (inTkns.Count > 1 && inTkns.Peek().TokenType == TokenType.ClosingAngle && curTkn.TokenType == TokenType.Equal)
+                {
+                    inTkns.Dequeue();
+                    tkns.Enqueue(new Token(TokenType.Operator, "=>", curTkn.StartPosition, curTkn.Line, curTkn.Column));
+                }
                 //Handle '$@' header for string literals
                 else if (inTkns.Count > 1 && inTkns.Peek().TokenType == TokenType.At && curTkn.TokenType == TokenType.Dollar)
                 {
@@ -130,8 +136,10 @@ namespace CardinalSemiCompiler.Tokenizer
                         case TokenType.ForwardSlash:
                         case TokenType.Dollar:
                         case TokenType.At:
-                        case TokenType.Equal:
                             tkns.Enqueue(new Token(TokenType.Operator, curTkn.TokenValue, curTkn.StartPosition, curTkn.Line, curTkn.Column));
+                            break;
+                        case TokenType.Equal:
+                            tkns.Enqueue(new Token(TokenType.AssignmentOperator, curTkn.TokenValue, curTkn.StartPosition, curTkn.Line, curTkn.Column));
                             break;
                         default:
                             tkns.Enqueue(curTkn);

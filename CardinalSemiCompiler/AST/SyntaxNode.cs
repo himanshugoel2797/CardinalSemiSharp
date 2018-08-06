@@ -30,6 +30,23 @@ namespace CardinalSemiCompiler.AST
         ParameterNode,
         FunctionSyntaxNode,
         SpecialStatement,
+        VariableNode,
+        ConstantNode,
+        AssignAndLambdaNode,
+        ConditionalNode,
+        NullCoalesceNode,
+        CondOrNode,
+        MultiplicativeNode,
+        AdditiveNode,
+        ShiftNode,
+        RelationalTypeTestingNode,
+        EqualityNode,
+        LogicAndNode,
+        LogicXorNode,
+        LogicOrNode,
+        CondAndNode,
+        UnaryNode,
+        PrimaryNode,
     }
 
     public class SyntaxNode
