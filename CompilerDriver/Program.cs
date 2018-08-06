@@ -22,7 +22,8 @@ namespace CompilerDriver
 
             tabCnt++;
             for (int i = 0; i < node.ChildNodes.Count; i++)
-                PrintSyntaxNode(node.ChildNodes[i]);
+                if(node.ChildNodes[i] != null)
+                    PrintSyntaxNode(node.ChildNodes[i]);
             tabCnt--;
         }
 

@@ -21,7 +21,8 @@ namespace CardinalSemiCompiler.AST
             var str = base.ToString() + " | Ops: ";
 
             for(int i = 0; i < Operator.Count; i++)
-                str += Operator[i].TokenValue + ", ";
+                if(Operator[i] != null)
+                    str += Operator[i].TokenValue + ", ";
 
             return str.Substring(0, str.Length - 2);
         }

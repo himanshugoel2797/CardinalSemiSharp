@@ -24,6 +24,7 @@ namespace CardinalSemiCompiler.Tokenizer
         IntegerLiteral,
         HexLiteral,
         BinaryLiteral,
+        FloatLiteral,
 
         Semicolon,
         OpeningBracket,
@@ -59,7 +60,7 @@ namespace CardinalSemiCompiler.Tokenizer
     public class Token
     {
         public TokenType TokenType { get; private set; }
-        public string TokenValue { get; private set; }
+        public string TokenValue { get; set; }
 
         public int StartPosition { get; private set; }
         public int Line { get; private set; }
@@ -72,6 +73,14 @@ namespace CardinalSemiCompiler.Tokenizer
             StartPosition = startPos;
             Line = line;
             Column = col;
+        }
+
+        public Token(Token t, string val){
+            TokenType = t.TokenType;
+            TokenValue = val;
+            StartPosition = t.StartPosition;
+            Line = t.Line;
+            Column = t.Column;
         }
 
         public override string ToString()

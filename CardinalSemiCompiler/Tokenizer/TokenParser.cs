@@ -143,39 +143,21 @@ namespace CardinalSemiCompiler.Tokenizer
         #endregion
 
         #region Integer Tokens
-        private static char[] NumberDescs = new char[] { 's', 'S', 'l', 'L', 'f', 'F', 'd', 'D' };
-        private static char[] SignedNumberDescs = new char[] { 's', 'S', 'l', 'L' };
-        private static char[] SignNumberMarkers = new char[] { 'u', 'U' };
+        private static string[] NumberDescs = new string[] { "l", "L", "f", "F", "d", "D", "m", "M", "u", "U", "ul", "UL" };
         public static bool IsInteger(string v)
         {
             bool continueParsing = false;
-            if (NumberDescs.Contains(v.Last()))
+            string lChar = v.Last().ToString();
+            string l2Char = v.Length > 1 ? v[v.Length - 2] + lChar : lChar;
+            if (NumberDescs.Contains(lChar))
             {
-                if (SignedNumberDescs.Contains(v.Last()) && v.Length >= 1)
-                {
-                    if (v.Length >= 2 && SignNumberMarkers.Contains(v[v.Length - 2]))
-                    {
-                        v = v.Substring(0, v.Length - 2);
-                        continueParsing = true;
-                    }
-                    else if (v.Length == 1 || char.IsDigit(v[v.Length - 2]))
-                    {
-                        v = v.Substring(0, v.Length - 1);
-                        continueParsing = true;
-                    }
-                }
-                else
-                {
-                    if (v.Length >= 2 && SignNumberMarkers.Contains(v[v.Length - 2]))
-                    {
-                        continueParsing = false;    //Syntax error, sign marker is not expected
-                    }
-                    else if (v.Length == 1 || char.IsDigit(v[v.Length - 2]))
-                    {
-                        v = v.Substring(0, v.Length - 1);
-                        continueParsing = true;
-                    }
-                }
+                v = v.Substring(0, v.Length - 1);
+                continueParsing = true;
+            }
+            else if (NumberDescs.Contains(l2Char))
+            {
+                v = v.Substring(0, v.Length - 2);
+                continueParsing = true;
             }
             else if (char.IsDigit(v.Last()))
                 continueParsing = true;

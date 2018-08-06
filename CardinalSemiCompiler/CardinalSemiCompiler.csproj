@@ -122,6 +122,8 @@
     <Compile Include="AST\GenericDeclarationSyntaxNode.cs" />
     <Compile Include="AST\GlobalDeclSyntaxNode.cs" />
     <Compile Include="AST\OperatorSyntaxNode.cs" />
+    <Compile Include="AST\ConstantOptimization.cs" />
+    <Compile Include="AST\NumberMath.cs" />
     <Compile Include="Parser.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SemiVM\CodeGenerator.cs" />

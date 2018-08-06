@@ -66,13 +66,21 @@ namespace CardinalSemiCompiler.AST
                 pos = ProcessNode(rNode, tkns, pos);
             } while (pos < tkns.Length);
 
-            //TODO: cleanup the tree, removing useless nodes.
+            //cleanup the tree, removing useless nodes.
+            CleanupTree(rNode);
+
+            //perform constant optimization
+            ConstantOptimization.Optimize(rNode);
+
+            //cleanup the tree again, removing useless nodes.
             CleanupTree(rNode);
 
             return rNode;
         }
 
         private static void CleanupTree(SyntaxNode n){
+            if(n == null)
+                return;
             for(int i = 0; i < n.ChildNodes.Count; i++){
                 var node_t = n.ChildNodes[i];
                 CleanupTree(node_t);
