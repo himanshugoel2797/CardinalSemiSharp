@@ -6,14 +6,26 @@ namespace Test0 {
         public var int B;
 
         public func string Test0(in float a, in byte b, out short c){
-            for(System.Int32 x = 0, f y = 0, g z = 10; x < 50; x++){
-                if(a == 1)
+            while(true){
+                S.Int32[] a_r = null;
+                if(a("abc", 30)[5] == 1)
                     return (10 - 5 * 2 / 4 + 20) | 0xFFFF;
                 else if(a == 2){
+                    Test1(a, c, b);
                     return c;
                 }
                 else
                     return b;
+                try{
+                    throw new Exception("B");
+                }catch(Exception e){
+                    Console.WriteLine(e);
+                }catch(Exception f){
+                    Console.WriteLine(f);
+                }finally{
+                    Console.WriteLine("TEST");
+                }
+                break;
             }
         }
     }

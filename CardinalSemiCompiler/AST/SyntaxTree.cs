@@ -493,7 +493,7 @@ namespace CardinalSemiCompiler.AST
                             var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
                             if(tkns[idx].TokenValue == "else"){
                                 if(tkns[idx + 1].TokenValue == "if"){
-                                    var ifNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx + 1]);
+                                    var ifNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, new Token(tkns[idx], "else if"));
                                     nNode.ChildNodes.Add(ifNode);
                                     nNode = ifNode;
                                     idx++;
@@ -520,13 +520,13 @@ namespace CardinalSemiCompiler.AST
                             var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
                             parent.ChildNodes.Add(nNode);
                             idx = ParseCodeBlock(nNode, tkns, idx + 1);
-                            if(tkns[idx].TokenType != TokenType.Keyword && tkns[idx].TokenValue == "while")
+                            if(tkns[idx].TokenType != TokenType.Keyword && tkns[idx].TokenValue != "while")
                                 throw new SyntaxException("Expected 'while' statement.", tkns[idx]);
 
                             if(tkns[idx + 1].TokenType != TokenType.OpeningParen)
                                 throw new SyntaxException("Expected opening parenthesis.", tkns[idx + 1]);
 
-                            idx = ParseExpression(nNode, tkns, idx);
+                            idx = ParseExpression(nNode, tkns, idx + 2);
 
                             if (tkns[idx].TokenType != TokenType.ClosingParen)
                                 throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
@@ -654,15 +654,17 @@ namespace CardinalSemiCompiler.AST
                     case "try":
                         {
                             var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            parent.ChildNodes.Add(nNode);
+                            
                             idx = ParseCodeBlock(nNode, tkns, idx + 1);
                             int catch_cnt = 0;
                             while(true){
-
-                                var catchNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
-                                nNode.ChildNodes.Add(catchNode);
                                 if(tkns[idx].TokenType != TokenType.Keyword | tkns[idx].TokenValue != "catch")
                                     if(catch_cnt == 0)throw new SyntaxException("Expected catch statement.", tkns[idx]);
                                     else break;
+
+                                var catchNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                                nNode.ChildNodes.Add(catchNode);
                             
                                 if(tkns[idx + 1].TokenType != TokenType.OpeningParen)
                                     throw new SyntaxException("Expected opening parenthesis.", tkns[idx + 1]);
@@ -675,13 +677,13 @@ namespace CardinalSemiCompiler.AST
                                 if(tkns[idx + 1].TokenType != TokenType.ClosingParen)
                                     throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
 
-                                idx = ParseCodeBlock(catchNode, tkns, idx);
+                                idx = ParseCodeBlock(catchNode, tkns, idx + 2);
                                 catch_cnt++;
                             }
                             if(tkns[idx].TokenType == TokenType.Keyword && tkns[idx].TokenValue == "finally"){
                                 var finallyNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
                                 nNode.ChildNodes.Add(finallyNode);
-                                idx = ParseCodeBlock(finallyNode, tkns, idx);
+                                idx = ParseCodeBlock(finallyNode, tkns, idx + 1);
                             }
                             return idx;
                         }

@@ -133,7 +133,7 @@ namespace CardinalSemiCompiler.Tokenizer
             if (char.IsLetter(firstChar))
             {
                 for (int i = 1; i < v.Length; i++)
-                    if (!char.IsLetterOrDigit(v[i]))
+                    if (!char.IsLetterOrDigit(v[i]) && v[i] != '_')
                         return false;
 
                 return true;

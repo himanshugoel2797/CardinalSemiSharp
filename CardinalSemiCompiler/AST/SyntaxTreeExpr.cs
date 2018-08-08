@@ -253,11 +253,11 @@ namespace CardinalSemiCompiler.AST
             //CONDITIONAL
             string[] primary_ops = new string[] {"true", "false", "null", "typeof", "sizeof", "nameof"};
 
-            if(tkns[idx].TokenType == TokenType.StringLiteral | tkns[idx].TokenType == TokenType.CharLiteral | tkns[idx].TokenType == TokenType.IntegerLiteral | tkns[idx].TokenType == TokenType.HexLiteral | tkns[idx].TokenType == TokenType.BinaryLiteral| tkns[idx].TokenType == TokenType.FloatLiteral){
+            if (tkns[idx].TokenType == TokenType.StringLiteral | tkns[idx].TokenType == TokenType.CharLiteral | tkns[idx].TokenType == TokenType.IntegerLiteral | tkns[idx].TokenType == TokenType.HexLiteral | tkns[idx].TokenType == TokenType.BinaryLiteral| tkns[idx].TokenType == TokenType.FloatLiteral){
                 //STRING | INTEGER | CHAR | HEX | BINARY
                 nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.ConstantNode, tkns[idx]));
                 return idx + 1;
-            }else if(tkns[idx].TokenType == TokenType.OpeningParen){
+            } else if(tkns[idx].TokenType == TokenType.OpeningParen){
                 //(EXPRESSION)
                 var nNode2 = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
                 nNode.ChildNodes.Add(nNode2);
@@ -265,7 +265,7 @@ namespace CardinalSemiCompiler.AST
                 if(tkns[idx].TokenType != TokenType.ClosingParen)
                     throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
                 return idx + 1;    
-            }else if(tkns[idx].TokenType == TokenType.Keyword){
+            } else if(tkns[idx].TokenType == TokenType.Keyword){
                 switch(tkns[idx].TokenValue){
                     //true | false | null
                     case "true":
@@ -293,15 +293,38 @@ namespace CardinalSemiCompiler.AST
                             return idx + 1;
                         }
                     case "new":
-                    //TODO: Implement the following operators
+                        {
+                            //TODO: Implement the following operators
+                            var nNode2 = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            nNode.ChildNodes.Add(nNode2);
+                            
+                            idx = ParseExpression(nNode2, tkns, idx + 1);
+                            return idx;
+                        }
                         break;
                     case "delegate":
+                        break;
+                    case "bool":
+                    case "byte":
+                    case "char":
+                    case "decimal":
+                    case "double":
+                    case "float":
+                    case "int":
+                    case "long":
+                    case "sbyte":
+                    case "uint":
+                    case "ulong":
+                    case "ushort":
+                        nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.CompoundIdentifierNode, tkns[idx]));
+                        nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableDeclNode, tkns[idx + 1]));
+                        return idx + 1;
                         break;
                     default:
                         throw new SyntaxException("Unexpected keyword.", tkns[idx]);
                 }
                 return idx + 1;
-            }else if(tkns[idx].TokenType == TokenType.Identifier){
+            } else if(tkns[idx].TokenType == TokenType.Identifier){
                 string[] ops = new string[] { "++", "--" };
                 string[] ops_1 = new string[] { "?.", "->" };
 
@@ -317,16 +340,44 @@ namespace CardinalSemiCompiler.AST
                     nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.CompoundIdentifierNode, tkns[idx]));
                     nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableDeclNode, tkns[idx + 1]));
                     return idx + 1;
+                } else if(tkns[idx + 1].TokenType == TokenType.OpeningParen){   //Function Call
+                    var nNode2 = new SyntaxNode(SyntaxNodeType.FunctionCallNode, tkns[idx]);
+                    nNode.ChildNodes.Add(nNode2);
+                    idx = ParseExpression(nNode2, tkns, idx + 2);
+                    if(tkns[idx].TokenType != TokenType.ClosingParen)
+                        throw new SyntaxException("Expected closing bracket.", tkns[idx]);
+
+                    if(tkns[idx + 1].TokenType == TokenType.OpeningBracket){
+                        while(tkns[idx + 1].TokenType == TokenType.OpeningBracket){
+                            var nNode3 = new SyntaxNode(SyntaxNodeType.IndexerAccess, tkns[idx + 1]);
+                            nNode.ChildNodes.Add(nNode3);
+                            idx = ParseExpression(nNode3, tkns, idx + 2);
+                            if(tkns[idx].TokenType != TokenType.ClosingBracket)
+                                throw new SyntaxException("Expected closing bracket.", tkns[idx]);
+                        }
+                    }
+
+                    return idx + 1;
                 } else {
                     nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableNode, tkns[idx]));
                 }
                 return idx + 1;
-            }else if(tkns[idx].TokenType == TokenType.Semicolon){
+            } else if(tkns[idx].TokenType == TokenType.Semicolon){
                 throw new Exception("Unknown.");
-            }else{
-                return ParseAssignAndLambdaExpr(nNode, tkns, idx);
+            } else if(tkns[idx].TokenType == TokenType.OpeningBracket){ //Array access
+                SyntaxNode nNode2 = null;
+                while(tkns[idx].TokenType == TokenType.OpeningBracket){
+                    nNode2 = new SyntaxNode(SyntaxNodeType.IndexerAccess, tkns[idx]);
+                    nNode.ChildNodes.Add(nNode2);
+                    idx = ParseExpression(nNode2, tkns, idx + 1);
+                    if(tkns[idx].TokenType != TokenType.ClosingBracket)
+                        throw new SyntaxException("Expected closing bracket.", tkns[idx]);
+                    idx++;
+                }
+                return ParseExpression(nNode2, tkns, idx);
+            } else {
+                return ParseExpression(nNode, tkns, idx);
             }
-            //TODO: Handle array and function calls
         }
 
     }
