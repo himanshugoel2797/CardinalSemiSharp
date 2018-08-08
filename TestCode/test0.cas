@@ -8,7 +8,7 @@ namespace Test0 {
         public func string Test0(in float a, in byte b, out short c){
             while(true){
                 S.Int32[] a_r = null;
-                if(a("abc", 30)[5] == 1)
+                if(a("abc", (int)30)[5] == 1)
                     return (10 - 5 * 2 / 4 + 20) | 0xFFFF;
                 else if(a == 2){
                     Test1(a, c, b);

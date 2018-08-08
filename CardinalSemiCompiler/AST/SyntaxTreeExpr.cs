@@ -294,7 +294,6 @@ namespace CardinalSemiCompiler.AST
                         }
                     case "new":
                         {
-                            //TODO: Implement the following operators
                             var nNode2 = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
                             nNode.ChildNodes.Add(nNode2);
                             
@@ -317,7 +316,8 @@ namespace CardinalSemiCompiler.AST
                     case "ulong":
                     case "ushort":
                         nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.CompoundIdentifierNode, tkns[idx]));
-                        nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableDeclNode, tkns[idx + 1]));
+                        if(tkns[idx + 1].TokenType == TokenType.Identifier)
+                            nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableDeclNode, tkns[idx + 1]));
                         return idx + 1;
                         break;
                     default:
@@ -335,7 +335,7 @@ namespace CardinalSemiCompiler.AST
                 } else if(tkns[idx + 1].TokenType == TokenType.Dot | (tkns[idx + 1].TokenType == TokenType.Operator && ops_1.Contains(tkns[idx + 1].TokenValue))){
                     nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.CompoundIdentifierNode, tkns[idx]));
                     nNode.Operator.Add(tkns[idx + 1]);
-                    return ParseAssignAndLambdaExpr(nNode, tkns, idx + 2);
+                    return ParseExpression(nNode, tkns, idx + 2);
                 } else if(tkns[idx + 1].TokenType == TokenType.Identifier){
                     nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.CompoundIdentifierNode, tkns[idx]));
                     nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableDeclNode, tkns[idx + 1]));
