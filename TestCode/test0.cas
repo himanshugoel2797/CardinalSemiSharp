@@ -9,7 +9,7 @@ namespace Test0 {
             while(true){
                 S.Int32[] a_r = null;
                 if(a("abc", (int)30)[5] == 1)
-                    return (10 - 5 * 2 / 4 + 20) | 0xFFFF;
+                    return (10 - 5 * 2 / 4 + 20) | ~(0xF0FF - 0xF);
                 else if(a == 2){
                     Test1(a, c, b);
                     return c;

@@ -148,6 +148,7 @@ namespace CardinalSemiCompiler.Tokenizer
                         case TokenType.ForwardSlash:
                         case TokenType.Dollar:
                         case TokenType.At:
+                        case TokenType.Tilda:
                             tkns.Enqueue(new Token(TokenType.Operator, curTkn.TokenValue, curTkn.StartPosition, curTkn.Line, curTkn.Column));
                             break;
                         case TokenType.Equal:
