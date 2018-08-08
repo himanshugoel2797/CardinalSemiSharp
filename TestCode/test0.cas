@@ -6,6 +6,7 @@ namespace Test0 {
         public var int B;
 
         public func string Test0(in float a, in byte b, out short c){
+            List<S.Int32> a_s = null;
             while(true){
                 S.Int32[] a_r = null;
                 if(a("abc", (int)30)[5] == 1)
@@ -24,6 +25,10 @@ namespace Test0 {
                     Console.WriteLine(f);
                 }finally{
                     Console.WriteLine("TEST");
+                }
+
+                foreach(int d in F){
+                    Console.WriteLine("FOREACH");
                 }
                 break;
             }

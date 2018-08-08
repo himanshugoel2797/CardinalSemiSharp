@@ -439,8 +439,8 @@ namespace CardinalSemiCompiler.AST
         }
 
         private static int ParseSubExpression(SyntaxNode parent, Token[] tkns, int idx){
-            var terms = new TokenType[]{ TokenType.Semicolon, TokenType.ClosingParen, TokenType.Comma, TokenType.ClosingBracket };
-            while(!terms.Contains(tkns[idx].TokenType))
+            var terms = new TokenType[]{ TokenType.Semicolon, TokenType.ClosingParen, TokenType.Comma, TokenType.ClosingBracket, TokenType.ClosingAngle };
+            //while(!terms.Contains(tkns[idx].TokenType))
                 idx = ParseAssignAndLambdaExpr(parent, tkns, idx);
             return idx;
         }
@@ -470,6 +470,14 @@ namespace CardinalSemiCompiler.AST
                 return ParseCodeBlock(nNode, tkns, idx);
             } else if(tkns[idx].TokenType == TokenType.Keyword) {
                 switch(tkns[idx].TokenValue){
+                    //unsafe CODE_BLOCK
+                    case "unsafe":
+                        {
+                            var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                            parent.ChildNodes.Add(nNode);
+                            return ParseCodeBlock(nNode, tkns, idx + 1);
+                        }
+                        break;
                     //while (CONDITIONAL) CODE_BLOCK
                     case "while":
                         {

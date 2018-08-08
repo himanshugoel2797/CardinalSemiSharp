@@ -239,6 +239,12 @@ namespace CardinalSemiCompiler.AST
             if(tkns[idx].TokenType == TokenType.Operator && ops.Contains(tkns[idx].TokenValue)){
                 nNode.Operator.Add(tkns[idx]);
                 return ParseUnaryExpr(nNode, tkns, idx + 1);
+            }else if(tkns[idx].TokenType == TokenType.OpeningParen){
+                nNode.Operator.Add(tkns[idx]);
+                idx = ParseUnaryExpr(nNode, tkns, idx + 1);
+                if(tkns[idx].TokenType != TokenType.ClosingParen)
+                    throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
+                return ParseUnaryExpr(nNode, tkns, idx + 1);
             }
             else
                 return ParsePrimaryExpr(nNode, tkns, idx);
@@ -259,7 +265,7 @@ namespace CardinalSemiCompiler.AST
                 return idx + 1;
             } else if(tkns[idx].TokenType == TokenType.OpeningParen){
                 //(EXPRESSION)
-                var nNode2 = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
+                var nNode2 = new SyntaxNode(SyntaxNodeType.NestedExpression, tkns[idx]);
                 nNode.ChildNodes.Add(nNode2);
                 idx = ParseExpression(nNode2, tkns, idx + 1);
                 if(tkns[idx].TokenType != TokenType.ClosingParen)
@@ -349,14 +355,33 @@ namespace CardinalSemiCompiler.AST
 
                     if(tkns[idx + 1].TokenType == TokenType.OpeningBracket){
                         while(tkns[idx + 1].TokenType == TokenType.OpeningBracket){
-                            var nNode3 = new SyntaxNode(SyntaxNodeType.IndexerAccess, tkns[idx + 1]);
-                            nNode.ChildNodes.Add(nNode3);
-                            idx = ParseExpression(nNode3, tkns, idx + 2);
+                            if(tkns[idx + 2].TokenType != TokenType.ClosingBracket){
+                                var nNode3 = new SyntaxNode(SyntaxNodeType.IndexerAccess, tkns[idx + 1]);
+                                nNode.ChildNodes.Add(nNode3);
+                                idx = ParseExpression(nNode3, tkns, idx + 2);
+                            }
+                            else
+                                idx += 2;
+
                             if(tkns[idx].TokenType != TokenType.ClosingBracket)
                                 throw new SyntaxException("Expected closing bracket.", tkns[idx]);
                         }
                     }
 
+                    return idx + 1;
+                } else if(tkns[idx + 1].TokenType == TokenType.OpeningAngle){   //Function Call
+                    var nNode2 = new SyntaxNode(SyntaxNodeType.GenericParameterNode, tkns[idx]);
+                    nNode.ChildNodes.Add(nNode2);
+                    idx++;
+                    while(true){
+                        idx = ParseTypeReference(nNode2, tkns, idx + 1, false);
+                        if(tkns[idx].TokenType == TokenType.Comma)
+                            idx++;
+                        else if(tkns[idx].TokenType == TokenType.ClosingAngle){
+                            break;
+                        }else
+                            throw new SyntaxException("Expected closing bracket.", tkns[idx]);
+                    }
                     return idx + 1;
                 } else {
                     nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableNode, tkns[idx]));
@@ -369,7 +394,12 @@ namespace CardinalSemiCompiler.AST
                 while(tkns[idx].TokenType == TokenType.OpeningBracket){
                     nNode2 = new SyntaxNode(SyntaxNodeType.IndexerAccess, tkns[idx]);
                     nNode.ChildNodes.Add(nNode2);
-                    idx = ParseExpression(nNode2, tkns, idx + 1);
+
+                    if(tkns[idx + 1].TokenType != TokenType.ClosingBracket)
+                        idx = ParseExpression(nNode2, tkns, idx + 1);
+                    else
+                        idx++;
+                    
                     if(tkns[idx].TokenType != TokenType.ClosingBracket)
                         throw new SyntaxException("Expected closing bracket.", tkns[idx]);
                     idx++;

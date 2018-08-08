@@ -51,6 +51,7 @@ namespace CardinalSemiCompiler.AST
         VariableDeclNode,
         IndexerAccess,
         FunctionCallNode,
+        NestedExpression,
     }
 
     public class SyntaxNode
