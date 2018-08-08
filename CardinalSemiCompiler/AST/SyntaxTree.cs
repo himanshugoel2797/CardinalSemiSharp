@@ -365,6 +365,38 @@ namespace CardinalSemiCompiler.AST
                 idx++;
             }
 
+            if(tkns[idx].TokenType == TokenType.OpeningParen){
+                var nNode2 = new SyntaxNode(SyntaxNodeType.ParameterNode, tkns[idx]);
+                nNode.ChildNodes.Add(nNode2);
+
+                nNode.NodeType = SyntaxNodeType.FunctionCallNode;
+                idx++;
+                if(tkns[idx].TokenType != TokenType.ClosingParen)
+                    do{
+                        if(tkns[idx].TokenType == TokenType.Comma)
+                            idx++;
+                        idx = ParseSubExpression(nNode2, tkns, idx);
+                    }while(tkns[idx].TokenType == TokenType.Comma);
+
+                if(tkns[idx].TokenType != TokenType.ClosingParen)
+                    throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
+                idx ++;
+            }
+
+            if(tkns[idx].TokenType == TokenType.OpeningBracket)
+                if(tkns[idx + 1].TokenType == TokenType.ClosingBracket){
+                    nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.ArraySpecifier, tkns[idx]));
+                    idx += 2;
+                } else if(nNode.NodeType == SyntaxNodeType.FunctionCallNode){
+                    var nNode2 = new SyntaxNode(SyntaxNodeType.IndexerAccess, tkns[idx]);
+                    nNode.ChildNodes.Add(nNode2);
+                    idx = ParseExpression(nNode2, tkns, idx + 1);
+                    if(tkns[idx].TokenType != TokenType.ClosingBracket)
+                        throw new SyntaxException("Expected closing bracket.", tkns[idx]);
+                    idx++;
+                } else
+                    throw new SyntaxException("Expected closing bracket.", tkns[idx]);
+
             if(tkns[idx].TokenType == TokenType.Dot | ops_1.Contains(tkns[idx].TokenValue)){
                 nNode.Token.TokenValue = tkns[idx].TokenValue;
                 return ParseTypeReference(nNode, tkns, idx + 1, false);

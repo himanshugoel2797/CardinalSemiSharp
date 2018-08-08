@@ -306,7 +306,7 @@ namespace CardinalSemiCompiler.AST
                             var nNode2 = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx]);
                             nNode.ChildNodes.Add(nNode2);
                             
-                            idx = ParseExpression(nNode2, tkns, idx + 1);
+                            idx = ParseType(nNode2, tkns, idx + 1);
                             return idx;
                         }
                         break;
