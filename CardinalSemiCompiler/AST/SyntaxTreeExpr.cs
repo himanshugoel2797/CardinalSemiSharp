@@ -239,13 +239,13 @@ namespace CardinalSemiCompiler.AST
             if(tkns[idx].TokenType == TokenType.Operator && ops.Contains(tkns[idx].TokenValue)){
                 nNode.Operator.Add(tkns[idx]);
                 return ParseUnaryExpr(nNode, tkns, idx + 1);
-            }else if(tkns[idx].TokenType == TokenType.OpeningParen){
+            }/*else if(tkns[idx].TokenType == TokenType.OpeningParen){
                 nNode.Operator.Add(tkns[idx]);
                 idx = ParseUnaryExpr(nNode, tkns, idx + 1);
                 if(tkns[idx].TokenType != TokenType.ClosingParen)
                     throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
                 return ParseUnaryExpr(nNode, tkns, idx + 1);
-            }
+            }*/
             else
                 return ParsePrimaryExpr(nNode, tkns, idx);
         }
@@ -268,8 +268,11 @@ namespace CardinalSemiCompiler.AST
                 var nNode2 = new SyntaxNode(SyntaxNodeType.NestedExpression, tkns[idx]);
                 nNode.ChildNodes.Add(nNode2);
                 idx = ParseExpression(nNode2, tkns, idx + 1);
-                if(tkns[idx].TokenType != TokenType.ClosingParen)
+                if(tkns[idx].TokenType != TokenType.ClosingParen && tkns[idx].TokenType != TokenType.Semicolon)
                     throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
+                
+                if(tkns[idx].TokenType == TokenType.Semicolon)
+                    return idx;
                 return idx + 1;    
             } else if(tkns[idx].TokenType == TokenType.Keyword){
                 switch(tkns[idx].TokenValue){
@@ -321,72 +324,14 @@ namespace CardinalSemiCompiler.AST
                     case "uint":
                     case "ulong":
                     case "ushort":
-                        nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.CompoundIdentifierNode, tkns[idx]));
-                        if(tkns[idx + 1].TokenType == TokenType.Identifier)
-                            nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableDeclNode, tkns[idx + 1]));
-                        return idx + 1;
+                        return ParseType(nNode, tkns, idx);
                         break;
                     default:
                         throw new SyntaxException("Unexpected keyword.", tkns[idx]);
                 }
                 return idx + 1;
             } else if(tkns[idx].TokenType == TokenType.Identifier){
-                string[] ops = new string[] { "++", "--" };
-                string[] ops_1 = new string[] { "?.", "->" };
-
-                if(tkns[idx + 1].TokenType == TokenType.Operator && ops.Contains(tkns[idx + 1].TokenValue)){
-                    nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableNode, tkns[idx]));
-                    nNode.Operator.Add(tkns[idx + 1]);
-                    return idx + 2;
-                } else if(tkns[idx + 1].TokenType == TokenType.Dot | (tkns[idx + 1].TokenType == TokenType.Operator && ops_1.Contains(tkns[idx + 1].TokenValue))){
-                    nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.CompoundIdentifierNode, tkns[idx]));
-                    nNode.Operator.Add(tkns[idx + 1]);
-                    return ParseExpression(nNode, tkns, idx + 2);
-                } else if(tkns[idx + 1].TokenType == TokenType.Identifier){
-                    nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.CompoundIdentifierNode, tkns[idx]));
-                    nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableDeclNode, tkns[idx + 1]));
-                    return idx + 1;
-                } else if(tkns[idx + 1].TokenType == TokenType.OpeningParen){   //Function Call
-                    var nNode2 = new SyntaxNode(SyntaxNodeType.FunctionCallNode, tkns[idx]);
-                    nNode.ChildNodes.Add(nNode2);
-                    idx = ParseExpression(nNode2, tkns, idx + 2);
-                    if(tkns[idx].TokenType != TokenType.ClosingParen)
-                        throw new SyntaxException("Expected closing bracket.", tkns[idx]);
-
-                    if(tkns[idx + 1].TokenType == TokenType.OpeningBracket){
-                        while(tkns[idx + 1].TokenType == TokenType.OpeningBracket){
-                            if(tkns[idx + 2].TokenType != TokenType.ClosingBracket){
-                                var nNode3 = new SyntaxNode(SyntaxNodeType.IndexerAccess, tkns[idx + 1]);
-                                nNode.ChildNodes.Add(nNode3);
-                                idx = ParseExpression(nNode3, tkns, idx + 2);
-                            }
-                            else
-                                idx += 2;
-
-                            if(tkns[idx].TokenType != TokenType.ClosingBracket)
-                                throw new SyntaxException("Expected closing bracket.", tkns[idx]);
-                        }
-                    }
-
-                    return idx + 1;
-                } else if(tkns[idx + 1].TokenType == TokenType.OpeningAngle){   //Function Call
-                    var nNode2 = new SyntaxNode(SyntaxNodeType.GenericParameterNode, tkns[idx]);
-                    nNode.ChildNodes.Add(nNode2);
-                    idx++;
-                    while(true){
-                        idx = ParseTypeReference(nNode2, tkns, idx + 1, false);
-                        if(tkns[idx].TokenType == TokenType.Comma)
-                            idx++;
-                        else if(tkns[idx].TokenType == TokenType.ClosingAngle){
-                            break;
-                        }else
-                            throw new SyntaxException("Expected closing bracket.", tkns[idx]);
-                    }
-                    return idx + 1;
-                } else {
-                    nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableNode, tkns[idx]));
-                }
-                return idx + 1;
+                return ParseType(nNode, tkns, idx);
             } else if(tkns[idx].TokenType == TokenType.Semicolon){
                 throw new Exception("Unknown.");
             } else if(tkns[idx].TokenType == TokenType.OpeningBracket){ //Array access
@@ -404,10 +349,33 @@ namespace CardinalSemiCompiler.AST
                         throw new SyntaxException("Expected closing bracket.", tkns[idx]);
                     idx++;
                 }
-                return ParseExpression(nNode2, tkns, idx);
+                return idx;
             } else {
                 return ParseExpression(nNode, tkns, idx);
             }
+        }
+
+        private static int ParseType(SyntaxNode parent, Token[] tkns, int idx){
+            var nNode = new OperatorSyntaxNode(SyntaxNodeType.TypeNode, tkns[idx]);
+            parent.ChildNodes.Add(nNode);
+            
+            string[] ops = new string[] { "++", "--" };
+            var terms = new TokenType[]{ TokenType.Semicolon, TokenType.Comma, TokenType.ClosingBracket, TokenType.ClosingAngle, TokenType.OpeningBrace };
+                
+            idx = ParseTypeReference(nNode, tkns, idx, false);
+            if(tkns[idx].TokenType == TokenType.Operator && ops.Contains(tkns[idx].TokenValue)){
+                nNode.Operator.Add(tkns[idx]);
+                return idx + 1;
+            } else if(tkns[idx].TokenType == TokenType.Identifier){
+                nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.VariableDeclNode, tkns[idx]));
+                return idx;
+            } else if(tkns[idx].TokenType == TokenType.ClosingParen && !terms.Contains(tkns[idx + 1].TokenType)){
+                //Type Cast
+                var nNode2 = new SyntaxNode(SyntaxNodeType.TypeCastNode, tkns[idx]);
+                nNode.ChildNodes.Add(nNode2);
+                idx = ParsePrimaryExpr(nNode2, tkns, idx + 1);
+            }
+            return idx;
         }
 
     }

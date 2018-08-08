@@ -52,6 +52,8 @@ namespace CardinalSemiCompiler.AST
         IndexerAccess,
         FunctionCallNode,
         NestedExpression,
+        TypeNode,
+        TypeCastNode,
     }
 
     public class SyntaxNode

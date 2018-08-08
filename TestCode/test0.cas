@@ -6,10 +6,10 @@ namespace Test0 {
         public var int B;
 
         public func string Test0(in float a, in byte b, out short c){
+            S.Int32[] a_r = null;
             List<S.Int32> a_s = null;
             while(true){
-                S.Int32[] a_r = null;
-                if(a("abc", (int)30)[5] == 1)
+                if(a("abc", 30)[5] == 1)
                     return (10 - 5 * 2 / 4 + 20) | ~(0xF0FF - 0xF);
                 else if(a == 2){
                     Test1(a, c, b);
