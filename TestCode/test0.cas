@@ -1,13 +1,14 @@
 using System;
 
 namespace Test0 {
-    class TestClass0 {
-        public static var int A;
-        public var int B;
+    class TestClass0 : TestClass, ITestB {
+        public static var int A = -10;
+        public var int[] B;
 
         public func string Test0(in float a, in byte b, out short c){
             S.Int32[] a_r = null;
-            List<S.Int32>[] a_s = new List<S.Int32>()[10];
+            List[] a_s = new List()[10];
+            a_s[0] = new List();
             while(true){
                 if(a("abc", 30)[5] == 1)
                     return (10 - 5 * 2 / 4 + 20) | ~(0xF0FF - 0xF);

@@ -98,6 +98,26 @@ namespace CardinalSemiCompiler.AST
                     n.ChildNodes.Clear();
                     n.ChildNodes.AddRange(ents);
                 }
+
+                if(n.ChildNodes.Count == 1 && n.ChildNodes[0].NodeType == SyntaxNodeType.TypeNode && n.NodeType == SyntaxNodeType.SpecialStatement){
+                    var ents = n.ChildNodes[0].ChildNodes;
+                    n.ChildNodes.Clear();
+                    n.ChildNodes.AddRange(ents);
+                    n.NodeType = SyntaxNodeType.TypeNode;
+                }
+
+                if(n.ChildNodes[i] != null && n.ChildNodes[i].ChildNodes.Count == 0 && n.ChildNodes[i].NodeType == SyntaxNodeType.Block){
+                    n.ChildNodes.RemoveAt(i);
+                    i--;
+                }
+
+                if(n.ChildNodes[i] != null && n.NodeType == SyntaxNodeType.Block && n.Token.TokenValue != "{"){
+                    n.NodeType = n.ChildNodes[0].NodeType;
+                    var ents = n.ChildNodes[0].ChildNodes;
+                    n.ChildNodes.Clear();
+                    n.ChildNodes.AddRange(ents);
+                }
+
                 /*if(n.ChildNodes.Count == 1 && n.ChildNodes[0].ChildNodes.Count == 1){
                     var node2 = n.ChildNodes[0].ChildNodes[0];
                     n.ChildNodes.Clear();
@@ -315,33 +335,34 @@ namespace CardinalSemiCompiler.AST
                         nNode.ChildNodes.Add(nNode2);
 
                         nNode.NodeType = SyntaxNodeType.FunctionCallNode;
-                        do{
-                            if(tkns[idx].TokenType == TokenType.Comma)
-                                idx++;
-                            idx = ParseSubExpression(nNode2, tkns, idx);
-                        }while(tkns[idx].TokenType == TokenType.Comma);
+                        if(tkns[idx].TokenType != TokenType.ClosingParen)
+                            do{
+                                if(tkns[idx].TokenType == TokenType.Comma)
+                                    idx++;
+                                idx = ParseSubExpression(nNode2, tkns, idx);
+                            }while(tkns[idx].TokenType == TokenType.Comma);
+
                         if(tkns[idx].TokenType != TokenType.ClosingParen)
                             throw new SyntaxException("Expected closing parenthesis.", tkns[idx]);
                         idx += 2;
                     }
+                    idx--;
 
-                    if(tkns[idx - 1].TokenType == TokenType.OpeningBracket)
-                        if(tkns[idx].TokenType == TokenType.ClosingBracket){
-                            nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.ArraySpecifier, tkns[idx - 1]));
-                            idx++;
+                    while(tkns[idx].TokenType == TokenType.OpeningBracket)
+                        if(tkns[idx + 1].TokenType == TokenType.ClosingBracket){
+                            nNode.ChildNodes.Add(new SyntaxNode(SyntaxNodeType.ArraySpecifier, tkns[idx]));
+                            idx += 2;
                             break;
-                        } else if(nNode.NodeType == SyntaxNodeType.FunctionCallNode){
-                            var nNode2 = new SyntaxNode(SyntaxNodeType.IndexerAccess, tkns[idx - 1]);
+                        } else { // if(nNode.NodeType == SyntaxNodeType.FunctionCallNode){
+                            var nNode2 = new SyntaxNode(SyntaxNodeType.IndexerAccess, tkns[idx]);
                             nNode.ChildNodes.Add(nNode2);
-                            idx = ParseExpression(nNode2, tkns, idx);
+                            idx = ParseExpression(nNode2, tkns, idx + 1);
                             if(tkns[idx].TokenType != TokenType.ClosingBracket)
-                                throw new SyntaxException("Expected closing bracket.", tkns[idx]);
-                            idx++;
+                                throw new SyntaxException("Expected closing bracket.", tkns[idx + 1]);
+                            idx ++;
                             break;
-                        } else
-                            throw new SyntaxException("Expected closing bracket.", tkns[idx]);
-
-                    idx -= 1;
+                        } //else
+                          //  throw new SyntaxException("Expected closing bracket.", tkns[idx]);
                     break;
                 }
                 else
@@ -352,7 +373,7 @@ namespace CardinalSemiCompiler.AST
                 curTkn = tkns[idx++];
             } while (true);
 
-            if(tkns[idx].TokenType == TokenType.OpeningAngle){
+            /*if(tkns[idx].TokenType == TokenType.OpeningAngle){
                 do{
                     var nNode2 = new SyntaxNode(SyntaxNodeType.GenericParameterNode, tkns[idx]);
                     nNode.ChildNodes.Add(nNode2);
@@ -396,6 +417,7 @@ namespace CardinalSemiCompiler.AST
                     idx++;
                 } else
                     throw new SyntaxException("Expected closing bracket.", tkns[idx]);
+            */
 
             if(tkns[idx].TokenType == TokenType.Dot | ops_1.Contains(tkns[idx].TokenValue)){
                 nNode.Token.TokenValue = tkns[idx].TokenValue;
@@ -501,11 +523,6 @@ namespace CardinalSemiCompiler.AST
 
         private static int ParseEvent(SyntaxNode parent, Token[] tkns, int idx){
             throw new NotImplementedException("Events not implemented yet.");
-        }
-
-        //CONST_EXPR
-        private static int ParseConstExpression(SyntaxNode parent, Token[] tkns, int idx){
-            throw new NotImplementedException("Constant expressions not implemented.");
         }
 
         private static int ParseConditional(SyntaxNode parent, Token[] tkns, int idx){
@@ -693,7 +710,7 @@ namespace CardinalSemiCompiler.AST
                         {
                             var nNode = new SyntaxNode(SyntaxNodeType.SpecialStatement, tkns[idx + 1]);
                             parent.ChildNodes.Add(nNode);
-                            idx = ParseConstExpression(nNode, tkns, idx + 1);
+                            idx = ParseSubExpression(nNode, tkns, idx + 1);
                             if(tkns[idx].TokenType != TokenType.Colon)
                                 throw new SyntaxException("Expected colon.", tkns[idx]);
 
@@ -968,9 +985,9 @@ namespace CardinalSemiCompiler.AST
 
             if(tkns[idx].TokenType == TokenType.Semicolon){
                 return idx + 1;
-            }else if(tkns[idx].TokenType == TokenType.Operator && tkns[idx].TokenValue == "="){
+            }else if(tkns[idx].TokenType == TokenType.AssignmentOperator && tkns[idx].TokenValue == "="){
                 //Parse the constant expression
-                return ParseConstExpression(node, tkns, idx + 1);
+                return ParseSubExpression(node, tkns, idx + 1);
             }else
                 throw new SyntaxException("Expected expression or semicolon.", tkns[idx]);
         }
@@ -1017,7 +1034,7 @@ namespace CardinalSemiCompiler.AST
             parent.ChildNodes.Add(node);
             idx = ParseCompoundIdentifier(node, tkns, idx + 1);
 
-            if (tkns[idx].TokenType == TokenType.OpeningAngle)
+            /*if (tkns[idx].TokenType == TokenType.OpeningAngle)
             {
                 //Handle generics
                 bool expectedIdent = true;
@@ -1035,7 +1052,7 @@ namespace CardinalSemiCompiler.AST
                     expectedIdent = !expectedIdent;
                     idx++;
                 }
-            }
+            }*/
 
             if (tkns[idx].TokenType == TokenType.Colon)
             {
@@ -1058,6 +1075,7 @@ namespace CardinalSemiCompiler.AST
                 }
             }
 
+            /*
             if (tkns[idx].TokenType == TokenType.Keyword && tkns[idx].TokenValue == "where"){
                 //Handle generic constraints
                 while(tkns[idx].TokenType == TokenType.Keyword && tkns[idx].TokenValue == "where")
@@ -1066,6 +1084,7 @@ namespace CardinalSemiCompiler.AST
                     idx++;
                 }
             }
+            */
 
             if (tkns[idx].TokenType != TokenType.OpeningBrace)
                 throw new SyntaxException("Expected '{'", tkns[idx]);
@@ -1100,10 +1119,10 @@ namespace CardinalSemiCompiler.AST
             EnumEntrySyntaxNode ent = new EnumEntrySyntaxNode(curTkn, nm, val);
             parent.ChildNodes.Add(ent);
 
-            if(tkns[idx].TokenType == TokenType.Operator && tkns[idx].TokenValue == "=")
+            if(tkns[idx].TokenType == TokenType.AssignmentOperator && tkns[idx].TokenValue == "=")
             {
                 //Parse the constant expression
-                return ParseConstExpression(ent, tkns, idx + 1);
+                return ParseSubExpression(ent, tkns, idx + 1);
             }
 
 

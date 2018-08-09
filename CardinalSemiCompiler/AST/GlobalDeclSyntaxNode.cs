@@ -35,6 +35,30 @@ namespace CardinalSemiCompiler.AST
         {
             var str = base.ToString() + " | Props: ";
 
+            if (IsPublic)
+                str += "Public, ";
+            
+            if (IsPrivate)
+                str += "Private, ";
+            
+            if (IsProtected)
+                str += "Protected, ";
+            
+            if (IsInternal)
+                str += "Internal, ";
+            
+            if (IsStatic)
+                str += "Static, ";
+            
+            if (IsConst)
+                str += "Const, ";
+            
+            if (IsVolatile)
+                str += "Volatile, ";
+
+            if (IsAtomic)
+                str += "Atomic, ";
+
             return str.Substring(0, str.Length - 2);
         }
     }
